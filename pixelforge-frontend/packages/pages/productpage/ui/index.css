@@ -1,0 +1,38 @@
+.product-page {
+    height: calc(100dvh - 66px);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    overflow: hidden;
+}
+
+.product-page__header {
+    flex-shrink: 0;
+}
+
+.product-page__header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.product-page__header p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.product-page__content {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.product-page__sidebar,
+.product-page__listing {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}

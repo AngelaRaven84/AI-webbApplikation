@@ -1,0 +1,10 @@
+.product-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.product-filters__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
