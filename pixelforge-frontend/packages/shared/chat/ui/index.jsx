@@ -1,7 +1,7 @@
 import { useChat } from '@pixelforge/usechat';
 
 export const Chat = () => {
-	const { messages, sendMessage } = useChat();
+	const { messages, sendMessage, isPending, error } = useChat();
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
@@ -22,6 +22,11 @@ export const Chat = () => {
 					<p key={message.id}>{message.content}</p>
 				))}
 			</div>
+
+			{isPending && <p role='status'>Assistenten tänker...</p>}
+
+			{error && <p role='alert'>{error.message}</p>}
+
 			<form onSubmit={handleSubmit}>
 				<label htmlFor='chat-message'>Din fråga</label>
 				<input
@@ -29,8 +34,11 @@ export const Chat = () => {
 					name='message'
 					type='text'
 					placeholder='Vad letar du efter?'
+					disabled={isPending}
 				/>
-				<button type='submit'>Skicka</button>
+				<button type='submit' disabled={isPending}>
+					{isPending ? 'Väntar...' : 'Skicka'}
+				</button>
 			</form>
 		</section>
 	);
