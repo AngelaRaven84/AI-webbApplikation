@@ -1,0 +1,36 @@
+.brand {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    cursor: pointer;
+    color: var(--color-text-primary);
+    text-decoration: none;
+
+    .brand__logo {
+        background-color: var(--color-brand);
+        display: grid;
+        place-items: center;
+        padding: .5rem;
+        border-radius: 10px;
+        transition: all .5s ease;
+
+        svg {
+            transition: all .5s ease;
+        }
+    }
+
+    .brand__name {
+        font-family: var(--font-heading);
+        font-size: 1.25em;
+    }
+}
+
+.brand:hover {
+    .brand__logo {
+        background-color: var(--color-brand-dark);
+        
+        svg {
+            transform: rotate(-180deg);
+        }
+    }
+}

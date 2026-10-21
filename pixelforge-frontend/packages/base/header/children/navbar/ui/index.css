@@ -1,0 +1,20 @@
+.nav {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+
+    .nav__link {
+        padding: .5rem 1rem;
+        text-decoration: none;
+        color: var(--color-text-primary);
+        border-radius: 10px;
+    }
+
+    .nav__link--active {
+        background-color: var(--color-elevated);
+    }
+
+    .nav__link:hover {
+        background-color: var(--color-elevated);
+    }
+}

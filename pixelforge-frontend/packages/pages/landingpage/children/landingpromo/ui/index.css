@@ -1,0 +1,129 @@
+.landing-promo {
+    position: relative;
+    min-height: 24rem;
+    overflow: hidden;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 2rem;
+
+    .landing-promo__bg {
+        position: absolute;
+        inset: 0;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+
+            background: linear-gradient(
+                90deg,
+                rgba(8, 11, 17, 0.98) 0%,
+                rgba(8, 11, 17, 0.9) 25%,
+                rgba(8, 11, 17, 0.55) 50%,
+                rgba(8, 11, 17, 0.1) 100%
+            );
+        }
+    }
+
+    .landing-promo__content {
+        position: relative;
+        z-index: 1;
+
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+
+        width: 50%;
+        min-height: 24rem;
+        padding: 2rem;
+    }
+
+    .landing-promo__eyebrow {
+        margin: 0 0 0.75rem;
+
+        color: var(--color-cyan);
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.0625rem;
+    }
+
+    .landing-promo__title {
+        margin: 0 0 1rem;
+
+        color: var(--color-text-primary);
+        font-family: var(--font-heading);
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .landing-promo__description {
+        max-width: 26rem;
+        margin: 0 0 1.5rem;
+
+        color: var(--color-text-secondary);
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+
+    .landing-promo__link {
+        padding: 0.75rem 1.25rem;
+
+        color: var(--color-text-primary);
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-decoration: none;
+
+        background-color: var(--color-brand);
+        border-radius: var(--radius-sm);
+
+        transition: background-color var(--transition-fast);
+
+        &:hover {
+            background-color: var(--color-brand-dark);
+        }
+    }
+}
+
+@media screen and (max-width: 1150px) {
+  .landing-promo {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+    .landing-promo {
+        min-height: 28rem;
+        margin-block: 3rem;
+
+        .landing-promo__bg {
+            background-position: 60% center;
+
+            &::after {
+                background: linear-gradient(
+                    90deg,
+                    rgba(8, 11, 17, 0.95) 0%,
+                    rgba(8, 11, 17, 0.75) 100%
+                );
+            }
+        }
+
+        .landing-promo__content {
+            width: 100%;
+            min-height: 28rem;
+            padding: 1.5rem;
+        }
+
+        .landing-promo__title {
+            font-size: 1.75rem;
+        }
+    }
+}

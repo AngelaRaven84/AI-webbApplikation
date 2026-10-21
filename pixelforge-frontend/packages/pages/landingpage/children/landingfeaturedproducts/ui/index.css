@@ -1,0 +1,85 @@
+.landing-featured {
+    padding-block: 4rem;
+
+    .landing-featured__header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    .landing-featured__heading {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .landing-featured__title {
+        color: var(--color-text-primary);
+        font-family: var(--font-heading);
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .landing-featured__description {
+        margin: 0;
+        color: var(--color-text-secondary);
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+    }
+
+    .landing-featured__link {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: var(--color-brand);
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-brand-light);
+        }
+    }
+
+    .landing-featured__products {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    /* Temporary until ProductCard is implemented */
+    .landing-featured__placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28rem;
+        padding: 1rem;
+        color: var(--color-text-secondary);
+        font-family: var(--font-body);
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+    }
+}
+
+@media (max-width: 1024px) {
+    .landing-featured {
+        .landing-featured__products {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .landing-featured {
+        padding-block: 3rem;
+
+        .landing-featured__products {
+            grid-template-columns: 1fr;
+        }
+    }
+}

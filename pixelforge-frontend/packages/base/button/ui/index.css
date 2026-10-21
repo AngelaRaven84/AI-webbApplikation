@@ -1,0 +1,24 @@
+.button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    background-color: var(--color-brand);
+    border: 1px solid var(--color-brand);
+
+    &:hover {
+        background-color: var(--color-brand-dark);
+    }
+}
+
+.button--outline {
+    color: var(--color-text-primary);
+    background-color: transparent;
+    border: 1px solid var(--color-text-secondary);
+
+    &:hover {
+        background-color: var(--color-surface);
+    }
+}
