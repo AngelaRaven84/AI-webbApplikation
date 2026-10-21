@@ -8,9 +8,9 @@ Det här är vår gemensamma plats för beslut, tankar, verifierad status och n�
 
 - Sara har lagt startprojektet i `projekt/examinationer/AI-webbApplikation`.
 - Rotens README, frontendens README och package.json samt backendens README-backend.md och package.json är lästa.
-- Backendens `src/routes/chat.route.js` har en tom POST-handler. Grundchatten återstår.
+- Frontendens grundchatt finns nu i gemensam Layout med formulär, meddelandelista, useChat-hook, TanStack Query-mutation samt vänteläge och felvisning. Backendens `src/routes/chat.route.js` har fortfarande en tom POST-handler; riktiga modellsvar återstår.
 - Enligt startdokumentationen finns produktvisning, supportsidor, kundvagn med Zustand, TanStack Query och npm workspaces i frontend. Backend har Express, Ollama-/Supabase-konfiguration och ett PDF-seed-script. Funktionerna har inte körtestats i detta pass.
-- Installationsstatus, lokala modeller, miljövariabler, Supabase, start av apparna och lint/build är ännu inte verifierade för det här projektet.
+- Frontendens start, lokala meddelanden, fel vid avstängd backend och frontend-lint är bekräftade av Sara. Backendinstallation/start, lokala modeller, miljövariabler, Supabase, modellsvar och produktionsbuild är inte verifierade i detta pass.
 - Instruktionsvideons ljud har transkriberats och jämförts med kursens uppdaterade README. Kursunderlag är inte en instruktion att automatiskt implementera allt.
 - Den lokala rot-README:n saknar ännu den uppdaterade kursversionens produkt-API, videolänk och rättade länk till backendens README. Originalinstruktionerna har inte ändrats i detta pass.
 - Git vid dokumentationsstart: branch `main`, spårar `origin/main`. README är redan ändrad; `.DS_Store` och båda projektmapparna är ospårade. Befintligt arbete bevaras. Ingen commit eller push har gjorts.
@@ -84,7 +84,7 @@ Dessa punkter ingår som planeringsunderlag; G-flödet byggs först.
 
 ## Arbetsplan – underlag till GitHub Project
 
-Varje rad nedan kan senare bli ett kort eller en issue med en tydlig beskrivning och ett klart-kriterium. Förslag på kolumner: **Att göra → Pågår → Att verifiera → Klart**. Inget board eller några issues har skapats av agenten. Sara skapar boardet; vi hjälper till att bryta ned och lägga in arbetet när hon ber om det.
+Varje rad nedan kan senare bli ett kort eller en issue med en tydlig beskrivning och ett klart-kriterium. Förslag på kolumner: **Att göra → Pågår → Att verifiera → Klart**. Sara har skapat sitt GitHub Project-board utifrån punkterna här och använder separata brancher för delarna. Boardet är bekräftat av Sara, inte inspekterat av agenten.
 
 | Ordning | Uppgift | Klart när |
 | --- | --- | --- |
@@ -122,10 +122,53 @@ Varje rad nedan kan senare bli ett kort eller en issue med en tydlig beskrivning
 - **Skriftlig deadline: 29 oktober 2026 kl. 23:59.**
 - **Examinerande Code Review: 30 oktober 2026**, personligt schema återstår att kontrollera.
 
-## Verifiering av detta dokumentationspass
+## Tidigare verifiering – första dokumentationspasset
 
 21 oktober: lokala instruktioner, README-filer, package.json, tom chat-route och Git-status kontrollerade. STATUS.md skapad som dokumentation. Ingen installation, seed, appstart, implementation, lint eller build utförd. Backendens befintliga testscript är en placeholder som avslutas med fel och utgör ingen fungerande testsvit.
 
+## Pauspunkt – 21 oktober 2026, frontendens grundchatt
+
+Sara avslutar för dagen och vill fortsätta med backend nästa arbetspass. Ingen ytterligare implementation ska göras vid denna paus.
+
+### Klart i koden
+
+- `@pixelforge/chat` i `packages/shared/chat` renderas efter Footer i gemensam Layout och följer därmed sidornas gemensamma struktur.
+- Formulär med label, input och Skicka-knapp. Submit hindrar sidomladdning, läser text med FormData och tömmer fältet.
+- `@pixelforge/usechat` i `packages/core/hooks/usechat` håller meddelanden i React-state. Användarens text trimmas; tomma frågor ignoreras. Meddelanden har id, role och content.
+- `sendChatMessage` i `packages/core/api/data/index.js` gör POST till `http://localhost:8080/api/chat` med `{ message, history }`.
+- `useMutation` från TanStack Query anropar API-funktionen. Tidigare meddelandens role/content skickas som history; den aktuella frågan skickas separat som message.
+- onSuccess är förberedd för att lägga till `{ role: 'assistant', content: data.content }` i meddelandelistan. Framgångsvägen har ännu inte körtestats mot backend.
+- Hooken returnerar messages, sendMessage, isPending och error. Komponenten visar vänteläge med role="status" och fel med role="alert" samt inaktiverar input/knapp medan anropet väntar.
+- sendMessage stoppar nya skickningar när isPending är sant. Detta är ett UI-skydd, inte testad backend-idempotens.
+
+### Testat enligt Sara
+
+Sara svarade klar efter respektive steg och bekräftade:
+
+- Chattens hälsning visas i gemensam layout på startsida, produktsida och supportsida.
+- Formuläret laddar inte om sidan vid Enter eller knapptryck.
+- Två användarmeddelanden visas i ordning, input töms och enbart mellanslag skapar inget meddelande.
+- Beteendet fungerar efter flytten till useChat och länkningen av workspace-paketet.
+- Frontend-lint passerar efter API-funktionen, mutationen och vänteläge/felvisning.
+- Med backend avstängd visas användarens fråga och därefter ett fel; input/knapp går att använda igen.
+
+Agenten har läst aktuella sparade filer och verifierat att ovanstående delar finns i koden. Agenten har inte kört om lint eller manuella UI-tester vid dokumentationsuppdateringen. Ingen produktionsbuild har rapporterats idag. Ett längre vänteläge mot en svarande server är ännu inte testat separat.
+
+### Kvar och inte verifierat
+
+- POST-handlern i backend är fortfarande tom. Chatten har ännu inte fått ett riktigt assistentsvar.
+- Frontend förväntar sig JSON med `{ content: 'svarets text' }`. Backend behöver uppfylla kontraktet och hantera fel/ogiltiga indata.
+- En lyckad fråga följd av en historikberoende följdfråga ska provas genom frontend när backend fungerar.
+- Öppna/stänga chatten, hörnplacering och styling återstår; nuvarande UI är ett enkelt synligt grundformulär. Arbetsplanens UI-kort är alltså inte helt färdigt.
+- RAG, produkt-tools, dokumentlänkar och kundvagnsverktyg är fortfarande planerade.
+- Anslutningsfel tömmer idag input men lämnar användarmeddelandet i historiken. Återförsök/drafthantering är inte implementerad; ta hänsyn till detta när historik och felbeteende provas.
+
+### Board och Git
+
+- Sara har skapat boardet och gått igenom startkodens struktur.
+- Vid pausuppdateringen: branch `7-chattens-ui`, spårar `origin/7-chattens-ui`, fyra lokala commits före remote. Arbetsytan var ren före uppdateringen av denna fil.
+- Agenten har endast uppdaterat STATUS.md i detta pass; ingen kod, commit, push eller boardändring utförd.
+
 ## Nästa steg
 
-**Gå igenom frontendens appstart och gemensamma layout och bestäm var den första chattkomponenten ska anslutas.** Därefter tar Sara det första lilla kodsteget. GitHub-boardet bryter vi ned tillsammans när hon har skapat det.
+**Koppla in backendens grundsvar.** Börja med att läsa `server.js`, `src/config/ollama.config.js` och den tomma `src/routes/chat.route.js`, kontrollera vald port och lokal modell utan att visa hemliga miljövärden, och ta sedan ett litet kodsteg för ett svar enligt frontendens kontrakt `{ content }`. Skicka med historiken till modellen och verifiera därefter ett riktigt svar samt en relevant följdfråga från frontend. RAG och tools kommer efter att detta grundflöde fungerar.
