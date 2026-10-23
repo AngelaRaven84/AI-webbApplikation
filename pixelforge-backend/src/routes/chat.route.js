@@ -23,12 +23,12 @@ router.post('/', async (req, res) => {
 	}
 
 	try {
-		const content = await getReply({
+		const reply = await getReply({
 			message: message.trim(),
 			history,
 		});
 
-		return res.json({ content });
+		return res.json(reply);
 	} catch {
 		return res.status(500).json({
 			error: 'Det gick inte att hämta ett svar från modellen.',

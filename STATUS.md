@@ -1,19 +1,20 @@
 # PixelForge AI-assistent – status och plan
 
-Senast uppdaterad: **21 oktober 2026**.
+Senast uppdaterad: **22 oktober 2026**.
 
 Det här är vår gemensamma plats för beslut, tankar, verifierad status och nästa steg. Bocka bara av arbete som faktiskt är gjort och ange vad som har testats. Planering är inte färdig funktionalitet.
 
-## Nuläge
+## Nuläge – 22 oktober
 
-- Sara har lagt startprojektet i `projekt/examinationer/AI-webbApplikation`.
-- Rotens README, frontendens README och package.json samt backendens README-backend.md och package.json är lästa.
-- Frontendens grundchatt finns nu i gemensam Layout med formulär, meddelandelista, useChat-hook, TanStack Query-mutation samt vänteläge och felvisning. Backendens `src/routes/chat.route.js` har fortfarande en tom POST-handler; riktiga modellsvar återstår.
-- Enligt startdokumentationen finns produktvisning, supportsidor, kundvagn med Zustand, TanStack Query och npm workspaces i frontend. Backend har Express, Ollama-/Supabase-konfiguration och ett PDF-seed-script. Funktionerna har inte körtestats i detta pass.
-- Frontendens start, lokala meddelanden, fel vid avstängd backend och frontend-lint är bekräftade av Sara. Backendinstallation/start, lokala modeller, miljövariabler, Supabase, modellsvar och produktionsbuild är inte verifierade i detta pass.
-- Instruktionsvideons ljud har transkriberats och jämförts med kursens uppdaterade README. Kursunderlag är inte en instruktion att automatiskt implementera allt.
-- Den lokala rot-README:n saknar ännu den uppdaterade kursversionens produkt-API, videolänk och rättade länk till backendens README. Originalinstruktionerna har inte ändrats i detta pass.
-- Git vid dokumentationsstart: branch `main`, spårar `origin/main`. README är redan ändrad; `.DS_Store` och båda projektmapparna är ospårade. Befintligt arbete bevaras. Ingen commit eller push har gjorts.
+- Grundchatten fungerar genom frontend → Express → Ollama, inklusive historik och relevanta följdfrågor enligt Saras tester.
+- Backend använder produkt-API:et via `fetchProducts` → `searchProducts` → `search_products`. Sökning efter namn/märke/kategori, maxpris och lager finns.
+- RAG är inkopplad som `search_support`: fråga → embedding → Supabase `match_documents` → fyra dokumentutdrag med källmetadata → dokumentbaserat svar.
+- Sara har skapat ett eget PixelForge-projekt i Supabase, laddat in dokumenten och verifierat sökning från backend. Nycklar hålls i backendens lokala .env; inga hemligheter återges här.
+- Lokalt PDF-test: 20 PDF-filer → 54 sidbaserade dokumentdelar → 161 chunks. Två databasrader visar text, source, documentId och 1024-dimensionella embeddings. Totalt radantal i databasen har inte visats i samtalet.
+- Modell: `qwen3:4b-instruct`; embeddingmodell: `qwen3-embedding:0.6b`, verifierad dimension 1024. Backend/API använder port 8080, Ollama 11434.
+- Produktfråga, inga träffar, kategoribyte med historik, supportfråga, supportföljdfråga, blandad fråga och saknat dokumentunderlag har provats av Sara. Frontend-lint/build passerade efter senaste ändringen enligt Sara.
+- VG-länkar till interna dokumentsidor och kundvagnsverktyg återstår. UI är fortfarande enkelt; öppna/stänga, hörnplacering och styling återstår.
+- Ingen ny implementation vid dagens paus. Sara uppdaterar själv GitHub och sitt Project-board.
 
 ## Beslut vi har tagit
 
@@ -42,7 +43,7 @@ Produktverktyget, tills vidare kallat `searchProducts`, ligger bredvid och hämt
 | Dokumentfunktion + support-tool | Söka relevanta chunks i Supabase och returnera text samt källmetadata. |
 | PDF-seed | Förbereda dokument, metadata och embeddings inför sökning. Körs separat från vanliga chattfrågor. |
 
-Vi börjar utan en separat klassificeringsrouter. Verktygsnamnen är arbetsnamn; exakta filnamn, paketgränser och kontrakt bestäms när vi har gått igenom koden.
+Vi använder ingen separat klassificeringsrouter. Implementerade verktygsnamn är `search_products` och `search_support`, med funktionerna searchProducts och searchSupport bakom. Modellen väljer verktyg; backend utför dem.
 
 Varför vi väljer detta:
 
@@ -51,7 +52,7 @@ Varför vi väljer detta:
 - En fråga kan behöva både produktinformation och supportvillkor.
 - Källmetadata från början gör det enklare att senare visa dokumentlänkar för VG.
 
-Att verifiera: den valda Ollama-modellen måste kunna välja och anropa rätt verktyg. Följdfrågor måste ge tydliga sökfrågor, exempelvis att ”gäller det även den?” kopplas till tidigare samtal. Vi väljer senare om detta löses via verktygsargument eller en separat omskrivning till en fristående fråga.
+Verifierat i Saras prov: Qwen väljer båda verktygen och formulerar en fristående supportfråga utifrån historiken. Ingen separat omskrivningskedja finns. Modellens val och svar är fortfarande inte garanterade; felaktiga kategorier, belopp och obestyrkta svar observerades under utvecklingen. Se pauspunkt 22 oktober för begränsningar.
 
 ### 4. Följ startkodens arkitektur
 
@@ -66,11 +67,13 @@ Att verifiera: den valda Ollama-modellen måste kunna välja och anropa rätt ve
 
 ### G – grundfunktion
 
-- [ ] Chatten är integrerad i befintlig PixelForge-frontend och kommunicerar med en språkmodell.
-- [ ] Supportfrågor besvaras med RAG utifrån de tillhandahållna dokumenten.
-- [ ] Produktfrågor besvaras genom tools som använder kursens produkt-API.
-- [ ] Historik gör att relevanta följdfrågor fungerar för både produkter och support.
-- [ ] Lösningen använder React, Node.js/Express, LangChain.js, Ollama och Supabase.
+- [x] Chatten är integrerad i befintlig PixelForge-frontend och kommunicerar med en språkmodell.
+- [x] Supportfrågor besvaras med RAG utifrån de tillhandahållna dokumenten.
+- [x] Produktfrågor besvaras genom tools som använder kursens produkt-API.
+- [x] Historik gör att relevanta följdfrågor fungerar för både produkter och support.
+- [x] Lösningen använder React, Node.js/Express, LangChain.js, Ollama och Supabase.
+
+Avbockningen ovan avser implementerat grundflöde och de manuella scenarier Sara verifierat. Den är inte en slutlig betygsbedömning eller en garanti för alla frågor. Slutkontroll och inlämningsdokumentation återstår.
 
 ### VG – tillägg efter fungerande G-flöde
 
@@ -116,7 +119,7 @@ Varje rad nedan kan senare bli ett kort eller en issue med en tydlig beskrivning
 - [Aktuell examinationsbeskrivning](https://github.com/fu-ai-webb25/exam-individuell/blob/main/README.md).
 - [Frontendens lokala README](pixelforge-frontend/README.md).
 - [Backendens lokala README](pixelforge-backend/README-backend.md).
-- [Produkt-API](https://santosnr6.github.io/Data/pixelforgeproducts.json). Verkliga fält behöver kontrolleras; lagerstatus anges som exempel och ska inte hittas på om fältet saknas.
+- [Produkt-API](https://santosnr6.github.io/Data/pixelforgeproducts.json). Fälten id, name, brand, category, price och stock är använda och provade. Stock finns i API:et.
 - Inspelning: `261021, Genomgång av examination.mp4` (21 oktober). Jesper rekommenderar frontend först och en fungerande grundchatt före påbyggnad. Val av RAG/tools-kombination är fritt.
 - Jesper avser publicera ett ytterligare kodexempel för RAG + tools senast fredag morgon den 23 oktober. Publiceringen är inte verifierad här.
 - **Skriftlig deadline: 29 oktober 2026 kl. 23:59.**
@@ -126,7 +129,7 @@ Varje rad nedan kan senare bli ett kort eller en issue med en tydlig beskrivning
 
 21 oktober: lokala instruktioner, README-filer, package.json, tom chat-route och Git-status kontrollerade. STATUS.md skapad som dokumentation. Ingen installation, seed, appstart, implementation, lint eller build utförd. Backendens befintliga testscript är en placeholder som avslutas med fel och utgör ingen fungerande testsvit.
 
-## Pauspunkt – 21 oktober 2026, frontendens grundchatt
+## Historisk pauspunkt – 21 oktober 2026, frontendens grundchatt
 
 Sara avslutar för dagen och vill fortsätta med backend nästa arbetspass. Ingen ytterligare implementation ska göras vid denna paus.
 
@@ -169,6 +172,69 @@ Agenten har läst aktuella sparade filer och verifierat att ovanstående delar f
 - Vid pausuppdateringen: branch `7-chattens-ui`, spårar `origin/7-chattens-ui`, fyra lokala commits före remote. Arbetsytan var ren före uppdateringen av denna fil.
 - Agenten har endast uppdaterat STATUS.md i detta pass; ingen kod, commit, push eller boardändring utförd.
 
+## Pauspunkt – 22 oktober 2026, produkt-tools och RAG fungerar
+
+Sara pausar för dagen. Nästa implementation tas i små steg nästa arbetspass.
+
+### Implementerat och granskat i sparade filer
+
+- `src/routes/chat.route.js` validerar message/history, anropar getReply och returnerar `{ content }`. Fel ger generellt HTTP 500-svar. Historiken accepterar user/assistant med textinnehåll.
+- `src/ai/getReply.js` omvandlar historik till LangChain-meddelanden, använder systemprompt och binder två tools. `toolsByName` väljer rätt verktyg, varje ToolCall skickas till verktygets invoke och resultaten läggs till innan slutsvaret.
+- **Faktisk körstruktur vid pausen:** en verktygsrunda med en for-loop över samtliga anrop i samma modellsvar, därefter `llm.invoke(messages)` utan tools. Två efterföljande verktygsrundor diskuterades men finns inte i den sparade filen. Blandtestet bevisar två verktyg i samma runda, inte sekventiellt beroende anrop.
+- `src/tools/products/fetchProducts.js` hämtar kursens API, kontrollerar HTTP-status och att svaret är en array. Enskilda produktobjekt valideras inte fullständigt.
+- `searchProducts.js` filtrerar med delsträng i namn/märke/kategori, högsta pris (inklusive gränsen) och valfri stock > 0. Ingen separat sortering eller begränsning av antal resultat finns.
+- `searchProductsTool.js` definierar `search_products` med Zod-schema. Beskrivningen förtydligar engelska kategorier och prisbelopp i SEK. Resultatet begränsas till id, name, brand, category, price och stock för att minska obestyrkta tillägg.
+- `scripts/inspectDocuments.js` används för lokal PDF-inläsning/chunkinspektion utan Supabase. Chunks har source och documentId från filnamnet.
+- `scripts/seed.js` sparar också source och documentId, delar med chunkSize 1000/chunkOverlap 200 och lagrar embeddings i documents. Scriptet lägger till rader utan automatisk dubblettkontroll; kör inte om det slentrianmässigt.
+- `src/ai/searchSupport.js` använder SupabaseVectorStore och similaritySearch(query, 4), utan poängtröskel eller separat relevanskontroll.
+- `src/tools/support/searchSupportTool.js` definierar `search_support` med en fristående query och returnerar JSON med text, documentId och source.
+- Systemprompten skiljer saknad information från uttryckligt nej, begär dokumentgrundade svar och förbjuder obestyrkta villkor. Detta är instruktioner till modellen, inte deterministisk svarskontroll.
+
+### Verifierat av Sara under dagen
+
+- Backendens npm-installation, konfiguration och grundchatt. Modellen minns namnet Sara i en följdfråga.
+- Ollama startade manuellt med `ollama serve` efter timeout; server och RTX 4050 upptäcktes. Avstängd Ollama gav frontendfel; efter omstart fungerade en ny fråga utan omstart av backend.
+- Produktfunktion och tool provade direkt: Keyboards, maxpris 1500, i lager → Alloy Origins Core TKL, 999 kr, 32 i lager. Okänd söktext → tom lista.
+- Modellen begärde ett riktigt search_products-anrop. Möss under 800 → DeathAdder V3 HyperSpeed, 699 kr, 31 i lager. Kategoribyte mellan tangentbord och möss i samma samtal gav rätt argument och svar efter förtydliganden.
+- För låg tangentbordsbudget gav tydligt besked om inga träffar.
+- Lokal embedding skapades och hade 1024 värden. Supabase-anslutning kontrollerades mot tom documents-tabell innan seed. Seed avslutades med ”Alla dokument har lagrats i supabase”.
+- SQL-utskrift verifierade text, source, documentId och dimension 1024 i två lagrade rader.
+- Fel PGRST202 felsöktes: match_documents saknades. Funktionen skapades i public, cacheuppdatering begärdes och parametrarna query_embedding, match_count och filter verifierades med SQL. Därefter fungerade sökningen.
+- Svensk fraktfråga gav relevant doc-001-utdrag med 69 SEK under 1500 SEK och fri standardfrakt från 1500 SEK.
+- Support-tool provades direkt och sedan via webbchatten; riktig search_support-logg och dokumentbaserat fraktsvar visades.
+- Följdfrågan om exakt 1500 kr gav ny fristående supportsökning och rätt gränsvärde.
+- Kombinerad fråga gav search_products och search_support i samma runda samt rätt produkt- och fraktuppgifter i senaste provet.
+- Fråga om livstids fri studentfrakt gav först för säkert nej. Efter promptförtydligande och ny chatt blev svaret: ”Jag hittar ingen information om livstids fri frakt för studenter i underlaget.”
+- Frontendens `npm run lint` och `npm run build` passerade enligt Sara efter produktdelen och åter efter RAG-delens sista ändring.
+
+Agenten har granskat sparade filer vid pausuppdateringen, men har inte kört om frontend-lint/build, modellsvar, seed eller databassökning. Databasens SQL och innehåll är verifierade genom Saras delade resultat, inte en ny direkt databasinspektion. Backendens befintliga testscript är fortfarande en placeholder; ingen fullständig automatisk backendtestsvit är verifierad.
+
+### Kvarvarande begränsningar och punkter att ta med framåt
+
+- Riktiga VG-dokumentlänkar återstår. Modellen har ibland skrivit en PDF-länk med bara filnamnet; detta räknas inte som länk till dokumentets egen sida i PixelForge. Mappa documentId mot verkliga frontenddokument/routes i kod och rendera betrodda länkar i React.
+- API-svaret till frontend är fortfarande bara `{ content }`; strukturerade källor skickas inte separat. UI visar message.content i en p-tagg; Markdown-formatering/länkar renderas inte som sådan.
+- Kundvagnsverktyg för lägga till/ta bort, följdfrågor och synlig uppdatering återstår helt.
+- Öppna/stänga, hörnplacering och chattstyling återstår. Kortet för hela UI:t bör inte markeras helt klart ännu.
+- Modellen har tidigare hoppat över verktyg, tolkat möss som hats, skickat 80 i stället för 800 och hittat på rabattbelopp. Bättre beskrivningar, smalare resultat och promptregler förbättrade de verifierade fallen; detta är inga garantier. Felaktiga gamla assistentsvar kan påverka fortsatta svar via historiken.
+- Språkputs återstår (exempelvis brand som ”Marknad”); belopp och villkorsgränser behöver fortsatt hållas exakta. Frakt beror på hela beställningens kvalificerande produktvärde, inte bara priset på en föreslagen produkt.
+- Fyra närmaste chunks kan innehålla mindre relevanta träffar även när information saknas. Ingen generell relevanströskel eller svarsfaktakontroll finns. Saknad-info-provet gäller det verifierade studentscenariot.
+- Flera sekventiella verktygsrundor, verktygs-/Supabasefel och routens negativa indatatester är inte verifierade. Grundmodellens avstängning/återhämtning är provad.
+- Seed-importen är vid granskningen skriven `@langchain/textSplitters` (stort S); paketnamnet är `@langchain/textsplitters`. Seed fungerade enligt Sara på Windows, men stavningen bör rättas i ett senare kodsteg för portabilitet. Ingen ändring gjordes vid pausen.
+- README/startinstruktioner och miljövariabelexempel behöver slutlig genomgång. Exakta interna dokument-id/routes återstår att jämföra innan länkar byggs. Jespers kompletterande exempel/publicering har inte kontrollerats.
+
+### Underlag till Saras boarduppdatering
+
+- Grundchatt/backend/historik: implementerat och manuellt provat.
+- Produktfunktion och produkt-tool: implementerat och kärnscenarier provade; separat produkt-API-feltest återstår om kortets klart-kriterium omfattar det.
+- PDF-inläsning, chunkning, Supabase-konfiguration och seed: genomfört; totalt databasradantal återstår att kontrollera vid behov, utan omseed.
+- Dokumenthämtning och support-tool i chatten: implementerat och manuellt provat.
+- Samlat G-grundflöde: angivna manuella scenarier genomförda; slutlig inlämningskontroll återstår.
+- Dokumentlänkar (VG), kundvagn (VG), kvarvarande UI och slutdokumentation: att göra.
+
+### Git och omfattning av pausuppdateringen
+
+Vid kontrollen: branch `12-dokumenthämtning`, spårar `origin/12-dokumenthämtning`, ren arbetsyta före denna uppdatering. Historiska branchuppgifter ovan avser 21 oktober. Endast STATUS.md uppdateras av agenten; Sara sköter GitHub, commits/push och Project-board själv.
+
 ## Nästa steg
 
-**Koppla in backendens grundsvar.** Börja med att läsa `server.js`, `src/config/ollama.config.js` och den tomma `src/routes/chat.route.js`, kontrollera vald port och lokal modell utan att visa hemliga miljövärden, och ta sedan ett litet kodsteg för ett svar enligt frontendens kontrakt `{ content }`. Skicka med historiken till modellen och verifiera därefter ett riktigt svar samt en relevant följdfråga från frontend. RAG och tools kommer efter att detta grundflöde fungerar.
+**Bygg riktiga dokumentlänkar i chatten för VG.** Börja med frontendens dokumentdata och route för en enskild supportsida och verifiera kopplingen till chunkarnas documentId. Bestäm därefter ett litet kontrakt för strukturerade källor från backend till frontend och rendera länkarna i React. Ett litet förklarat kodsteg i taget; inga fler ändringar vid dagens paus.
