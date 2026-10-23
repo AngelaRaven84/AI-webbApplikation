@@ -6,6 +6,7 @@ import {
 import { llm } from '../config/ollama.config.js';
 import { searchProductsTool } from '../tools/products/searchProductsTool.js';
 import { searchSupportTool } from '../tools/support/searchSupportTool.js';
+import { addToCartTool } from '../tools/cart/addToCartTool.js';
 
 const tools = [searchProductsTool, searchSupportTool];
 
@@ -15,6 +16,8 @@ const modelWithTools = llm.bindTools(tools);
 
 export const getReply = async ({ message, history = [], cart = [] }) => {
 	const sourceIds = new Set();
+	const cartActions = [];
+
 	const previousMessages = history.map(({ role, content }) =>
 		role === 'assistant' ? new AIMessage(content) : new HumanMessage(content),
 	);
@@ -62,6 +65,21 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 					}
 				}
 			}
+
+			if (toolCall.name === addToCartTool.name) {
+				const prepared = JSON.parse(result.content);
+
+				if (
+					prepared.status !== 'prepared' ||
+					prepared.action?.type !== 'add_to_cart' ||
+					typeof prepared.action.product?.id !== 'string'
+				) {
+					throw new Error('Kundvagnsverktyget returnerade ett oväntat format.');
+				}
+
+				cartAction.push(prepared.action);
+			}
+
 			messages.push(result);
 		}
 
@@ -70,5 +88,6 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 	return {
 		content: response.content,
 		sources: [...sourceIds],
+		cartActions,
 	};
 };
