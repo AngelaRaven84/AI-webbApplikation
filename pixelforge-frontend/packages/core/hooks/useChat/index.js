@@ -12,6 +12,7 @@ export const useChat = () => {
 					id: crypto.randomUUID(),
 					role: 'assistant',
 					content: data.content,
+					sources: data.sources ?? [],
 				},
 			]);
 		},

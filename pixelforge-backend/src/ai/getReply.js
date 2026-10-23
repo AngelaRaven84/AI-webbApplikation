@@ -14,6 +14,7 @@ const toolsByName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
 const modelWithTools = llm.bindTools(tools);
 
 export const getReply = async ({ message, history = [] }) => {
+	const sourceIds = new Set();
 	const previousMessages = history.map(({ role, content }) =>
 		role === 'assistant' ? new AIMessage(content) : new HumanMessage(content),
 	);
@@ -41,10 +42,27 @@ export const getReply = async ({ message, history = [] }) => {
 			}
 
 			const result = await selectedTool.invoke(toolCall);
+
+			if (toolCall.name === searchSupportTool.name) {
+				const documents = JSON.parse(result.content);
+
+				if (!Array.isArray(documents)) {
+					throw new Error('Supportverktyget returnerade ett oväntat format.');
+				}
+
+				for (const document of documents) {
+					if (typeof document?.documentId === 'string') {
+						sourceIds.add(document.documentId);
+					}
+				}
+			}
 			messages.push(result);
 		}
 
 		response = await llm.invoke(messages);
 	}
-	return response.content;
+	return {
+		content: response.content,
+		sources: [...sourceIds],
+	};
 };
