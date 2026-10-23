@@ -49,7 +49,8 @@ router.post('/', async (req, res) => {
 		});
 
 		return res.json(reply);
-	} catch {
+	} catch (error) {
+		console.error('Chatfel:', error);
 		return res.status(500).json({
 			error: 'Det gick inte att hämta ett svar från modellen.',
 		});

@@ -7,6 +7,12 @@ export const useChat = () => {
 	const { mutate, isPending, error } = useMutation({
 		mutationFn: sendChatMessage,
 		onSuccess: (data) => {
+			for (const action of data.cartActions ?? []) {
+				if (action.type === 'add_to_cart') {
+					useCartStore.getState().addToCart(action.product);
+				}
+			}
+
 			setMessages((previous) => [
 				...previous,
 				{

@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { createAddToCartAction } from './createAddToCartAction.js';
 
 export const addToCartTool = tool(
-	async ({ productId }) => {
-		const action = await createAddToCartAction({ productId });
+	async ({ productName }) => {
+		const action = await createAddToCartAction({ productName });
 
 		return JSON.stringify({
 			status: 'prepared',
@@ -13,13 +13,13 @@ export const addToCartTool = tool(
 	},
 	{
 		name: 'add_to_cart',
-		description: `Förbered att lägga ett exemplar av en produkt i kundvagnen. Använd bara när kunden ber att lägga till produkten. Använd ett riktigt produkt-id från en produktsökning eller en tydlig hänvisning till dess resultat i historiken. Åtgärden är förberedd men ännu inte utförd i webbshoppen.`,
+		description: `Förberedd att lägga ett exemplar av en produkt i kundvagnen. Använd bara när kunden uttryckligen ber om ett tillägg. Ange produktens exakta namn från sökresultatet eller samtalet. Backend slår upp produktens id och kontrollerar lagerstatus. Om det är oklart vilken produkt kunden menar, be om förtydligande. Åtgärden är förberedd men ännu inte utförd i webbshoppen.`,
 		schema: z.object({
-			productId: z
+			productName: z
 				.string()
 				.trim()
 				.min(1)
-				.describe('Produktens id i PixelForges sortiment.'),
+				.describe('Produktens exakta namn, inte produkt-id.'),
 		}),
 	},
 );
