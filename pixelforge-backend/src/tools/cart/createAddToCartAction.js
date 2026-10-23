@@ -8,7 +8,7 @@ export const createAddToCartAction = async ({ productId }) => {
 		throw new Error('Produkten finns inte i sortimentet.');
 	}
 
-	if (product.stocl < 1) {
+	if (product.stock < 1) {
 		throw new Error('Produkten finns inte i lager.');
 	}
 
