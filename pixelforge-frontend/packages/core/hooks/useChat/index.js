@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { sendChatMessage } from '@pixelforge/api';
 import { useState } from 'react';
+import { useCartStore } from '@pixelforge/usecartstore';
 
 export const useChat = () => {
 	const { mutate, isPending, error } = useMutation({
@@ -34,12 +35,21 @@ export const useChat = () => {
 			},
 		]);
 
+		const cart = useCartStore
+			.getState()
+			.cart.map(({ productId, name, qty }) => ({
+				productId,
+				name,
+				qty,
+			}));
+
 		mutate({
 			message: text,
 			history: messages.map(({ role, content }) => ({
 				role,
 				content,
 			})),
+			cart,
 		});
 	};
 
