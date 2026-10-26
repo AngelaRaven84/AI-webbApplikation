@@ -8,6 +8,7 @@ import { searchProductsTool } from '../tools/products/searchProductsTool.js';
 import { searchSupportTool } from '../tools/support/searchSupportTool.js';
 import { addToCartTool } from '../tools/cart/addToCartTool.js';
 import { parseCartIntent } from './parseCartIntent.js';
+import { createRemoveFromCartTool } from '../tools/cart/removeFromCartTool.js';
 
 const tools = [searchProductsTool, searchSupportTool];
 
