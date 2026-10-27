@@ -1,10 +1,10 @@
 # PixelForge AI-assistent – status och plan
 
-Senast uppdaterad: **23 oktober 2026**.
+Senast uppdaterad: **26 oktober 2026**.
 
 Det här är vår gemensamma plats för beslut, tankar, verifierad status och nästa steg. Bocka bara av arbete som faktiskt är gjort och ange vad som har testats. Planering är inte färdig funktionalitet.
 
-## Nuläge – 23 oktober
+## Nuläge – 26 oktober
 
 - Grundchatten fungerar genom frontend → Express → Ollama, inklusive historik och relevanta följdfrågor enligt Saras tester.
 - Backend använder produkt-API:et via `fetchProducts` → `searchProducts` → `search_products`. Sökning efter namn/märke/kategori, maxpris och lager finns.
@@ -14,7 +14,7 @@ Det här är vår gemensamma plats för beslut, tankar, verifierad status och n�
 - Modell: `qwen3:4b-instruct`; embeddingmodell: `qwen3-embedding:0.6b`, verifierad dimension 1024. Backend/API använder port 8080, Ollama 11434.
 - Produktfråga, inga träffar, kategoribyte med historik, supportfråga, supportföljdfråga, blandad fråga och saknat dokumentunderlag har provats av Sara. Frontend-lint/build passerade efter senaste ändringen enligt Sara.
 - Dokumentlänkar (VG) fungerar: strukturerade käll-id:n matchas mot frontendens befintliga dokumentlista och länkar till rätt supportsida. Sara har verifierat klick och att chatten finns kvar.
-- Kundvagn: aktuell snapshot skickas med varje fråga. Ett första tillägg via följdfråga är verifierat hela vägen till synlig kundvagn, men ”ett exemplar till av samma” misslyckas fortfarande: modellen svarar som om den ändrat kundvagnen utan verktygsanrop. Kundvagnsdelen är därför pågående, inte klar. Borttagning via chatten saknas.
+- Kundvagnstillägg hanteras nu av separat strukturerad tolkning och direkt verktygsanrop i backend. Sara har verifierat första tillägg, ”ett exemplar till” (1 → 2), fråga om innehåll utan ändring samt nekande utan ändring efter tvåstegstolkningen. Borttagningsfunktion och tool är byggda och direktprovade, men ännu inte inkopplade hela vägen till webbchatten. VG-kundvagnsdelen är fortfarande pågående.
 - UI är fortfarande enkelt; öppna/stänga, hörnplacering och styling återstår. Se dagens pauspunkt för exakt status och återstart.
 - Ingen ny implementation vid dagens paus. Sara uppdaterar själv GitHub och sitt Project-board.
 
@@ -237,7 +237,7 @@ Agenten har granskat sparade filer vid pausuppdateringen, men har inte kört om 
 
 Vid kontrollen: branch `12-dokumenthämtning`, spårar `origin/12-dokumenthämtning`, ren arbetsyta före denna uppdatering. Historiska branchuppgifter ovan avser 21 oktober. Endast STATUS.md uppdateras av agenten; Sara sköter GitHub, commits/push och Project-board själv.
 
-## Pauspunkt – 23 oktober 2026, dokumentlänkar klara och kundvagn pågår
+## Historisk pauspunkt – 23 oktober 2026, dokumentlänkar klara och kundvagn pågår
 
 Sara pausar för dagen och vill återuppta med ett tydligt litet steg imorgon. Ingen ytterligare implementationskod ändras vid denna paus. Historiska avsnitt ovan beskriver tidigare lägen; detta avsnitt gäller nu.
 
@@ -308,6 +308,82 @@ Verifierat av Sara:
 - Aktuell branch vid pauskontroll: `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`. Arbetsytan var ren före denna STATUS-uppdatering.
 - Agenten har läst aktuella sparade filer men inte kört om UI/modelltester, lint eller build. Manuella resultat ovan kommer från Saras tester och loggar. Endast STATUS.md ändras vid denna paus; inga commits, pushar eller boardändringar görs.
 
+## Pauspunkt – måndag 26 oktober 2026, tillägg fungerar och borttagning förberedd
+
+Sara avslutar för dagen och vill fortsätta tisdag 27 oktober. Ingen ytterligare implementationskod ändras vid denna paus. Detta avsnitt och Nuläge gäller framför historiska felbeskrivningar från 23 oktober.
+
+### Dagens ändrade flöde
+
+- `src/ai/parseCartIntent.js` är nu byggd och inkopplad i början av getReply. Det tidigare förslaget från fredag är alltså inte längre bara planerat.
+- Kundvagnsändringar går en separat kodväg. getReply binder endast searchProductsTool och searchSupportTool till den allmänna chattmodellen. addToCartTool anropas direkt av kod vid intent.action === add och kan därför inte dessutom köras i den vanliga toollopen.
+- Vid add kontrollerar befintligt tool produktnamnet mot produkt-API:et och returnerar prepared-action. getReply returnerar { content, sources: [], cartActions: [action] }. Frontend utför via useCartStore i onSuccess.
+- API-fältet är cartActions (plural). Felstavningen cartAction rättades; annars ignorerade frontend åtgärdslistan.
+- Systemprompten i getReply har nu tydliga avsnitt för produkter, support, aktuell kundvagn och underlag/historik. Gamla instruktioner om att den allmänna modellen ska anropa add_to_cart är borttagna. Prompten ligger fortfarande i getReply.js, inte separat fil.
+- Bekräftelsetext från backend säger att tillägget är förberett. Separat UI-bekräftelse grundad i utförd storeändring är fortfarande inte byggd.
+
+### Varför tvåstegstolkning behövdes
+
+- Första versionen tolkade senaste fråga, historik och cart tillsammans. Den svarade ibland clarify/none även vid explicit produktnamn. Promptförtydligande med exempel förbättrade add-tolkningen.
+- Ett kritiskt motprov visade sedan att ”Vad ligger i min kundvagn?” med gamla tillägg i historiken felklassificerades och faktiskt lade till ytterligare ett tangentbord.
+- Därför kör parseCartIntent nu först actionModel med ENDAST senaste message: klassificera add/remove/none, utan historiken. none returnerar direkt { action: none, productName: null }.
+- Endast vid ändringsbegäran körs intentModel med message, cart och history för att identifiera produktnamn och eventuellt clarify.
+- Första schemas action är nu add/remove/none; det andra har add/remove/none/clarify. Produktvalets andra modellreturn kan fortfarande innehålla en annan action än första beslutet: koden låser ännu inte operationen till första stegets beslut. Detta är en kvarvarande gräns att känna till, inte en garanti för alla formuleringar.
+- All tolkning är fortfarande modellbaserad. Strukturerat format är inte bevis på korrekt användaravsikt. Bevara de negativa testen vid framtida ändringar.
+
+### Verifierat av Sara idag
+
+- Direkt tolkning: ”Lägg till ett exemplar till av samma tangentbord” med en entydig kundvagn → add och Alloy Origins Core TKL.
+- Direkt tolkning: ”Vad ligger i min kundvagn?” och ”Lägg inte till något” → none/null i första isolerade provet.
+- Explicit tillägg med tom cart/history → add och Alloy Origins Core TKL efter promptförtydligandet.
+- Webbchatt: explicit första tillägg och följdfrågan om ett exemplar till gav båda add med rätt namn. Sara såg två tangentbord på samma produktrad, alltså 1 → 2.
+- Efter att tvåstegstolkningen införts: isolerat innehållsfrågeprov med gammalt tillägg i history → none/null.
+- Därefter i samma webbchatt: innehållsfrågan beskrev kundvagnen, terminal visade none och antalet ändrades inte.
+- ”Lägg inte till något” gav none, ingen ändring och ett svar om innehållet. Beteendet är verifierat; exakt formulering kan putsas senare.
+- Dagens borttagningsfunktion och tool direktprovades enligt Saras klar. Direkt tolkning: ”Ta bort ett av tangentborden” → remove och Alloy Origins Core TKL; ”Ta inte bort något” → none/null.
+
+Agenten har läst aktuella filer vid pausen men inte kört om modellanrop, manuella UI-tester, lint eller build. Ingen ny slutlig frontend-lint/build eller komplett regression efter dagens ändringar har rapporterats. Äldre godkända kontroller gäller respektive tidigare kodläge.
+
+### Borttagning – exakt sparat läge vid pausen
+
+Byggt och granskat:
+
+- `src/tools/cart/createRemoveFromCartAction.js`: matchar produktnamn exakt efter trim/lowercase i aktuell cart, stoppar noll eller flera matchningar och returnerar { type: remove_from_cart, productId, name }.
+- Borttagningen använder cart-radens riktiga produktId; inget produkt-API behövs för att ta bort en produkt som redan ligger i vagnen.
+- `src/tools/cart/removeFromCartTool.js`: exporterar createRemoveFromCartTool(cart), en factory för requestens aktuella kundvagn. Verktygets productName kommer från tolkningen; cart hämtas inte från modellargument/global backendstate. Returnerar JSON med status: prepared och action.
+- parseCartIntent har utökats för remove enligt ovan. Direktprov av remove och dess nekande lyckades.
+
+**Ännu INTE inkopplat i sparad kod:**
+
+- getReply importerar createRemoveFromCartTool men har ingen if (intent.action === remove)-gren som utför det eller returnerar en remove-action.
+- Kontroll för saknat produktnamn gäller bara add; den behöver omfatta både add och remove.
+- Förtydligandetexten är fortfarande ”Vilken produkt vill du lägga till”; byt till exempelvis ”Vilken produkt menar du?” så det passar båda operationerna.
+- Frontendens useChat.onSuccess hanterar bara add_to_cart, inte remove_from_cart.
+- Sista instruktionen i chatten beskrev dessa tre kopplingar, men de finns inte i sparade filer vid paus. Sara har inte rapporterat något webbtest av borttagning. Återanvänd befintliga removeFromCart(productId) i storen: den minskar ETT exemplar och tar bort raden vid noll.
+
+### Första steg vid återstart
+
+Koppla borttagningen utan att ändra produkt-/supportverktygen:
+
+1. Utöka namnkontrollen i getReply till add/remove och gör förtydligandefrågan generell.
+2. Lägg en remove-gren efter add-grenen: skapa tool med aktuell cart, invoke({ productName }), JSON.parse(result), validera status/type/productId och returnera { content, sources: [], cartActions: [prepared.action] }. Ingen ny kundvagnsstore.
+3. Lägg else if (action.type === remove_from_cart) i frontendens åtgärdsloop och anropa useCartStore.getState().removeFromCart(action.productId).
+4. Verifiera i samma webbchatt med två tangentbord: ”Ta bort ett av tangentborden” → 2 till 1; ”Ta bort ett exemplar till av samma tangentbord” → 1 till 0 och raden försvinner; fråga innehåll → tom cart utan ändring. Negativt prov ”Ta inte bort något” ska ge none och oförändrad cart.
+
+Gör ett litet kodsteg i taget och kontrollera filerna före instruktioner så att samma kod inte byggs igen.
+
+### Återstår efter borttagningskopplingen
+
+- Både add/remove inklusive relevanta följdfrågor och nekanden behöver en samlad kontroll efter integrationen. Testa oklart produktval utan att välja godtyckligt.
+- Förväntade fel (produkten saknas i cart/sortiment, flera namnträffar, slut i lager) leder fortfarande till generellt 500 via routens catch. Begripligt fel-/förtydligandeflöde återstår.
+- Första actionModel täcker bara add/remove/none, inte mer omfattande kombinerade operationer. Flera produkter/antal eller ”ta bort allt” är inte implementerade som särskilda operationer; våra actions gäller ett exemplar per request.
+- Lagerkontroll tar inte hänsyn till befintligt cart-antal; replay/idempotensskydd och fullständiga produktfältkontroller är inte byggda. Detta ska inte beskrivas som verifierat.
+- Regressionsprov av vanlig produktfråga samt RAG-svar med klickbar dokumentlänk behövs efter kundvagnsändringarna, följt av frontend-lint/build och relevanta backendkontroller.
+- UI/styling/öppna-stänga, språk/Markdown, eventuell separat promptfil och slutlig README/inlämningsförberedelse återstår. Dokumentlänkarna är tidigare verifierade; inga ändringar gjorda i dem i detta pauspass.
+
+### Git och pausens omfattning
+
+Kontrollerat 26 oktober: branch `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`, ren arbetsyta före denna dokumentationsuppdatering. Endast STATUS.md uppdateras av agenten. Ingen implementation, commit, push eller boardändring görs vid pausen. Sara återupptar arbetet 27 oktober.
+
 ## Nästa steg
 
-**Återuppta det misslyckade ”ett exemplar till”-fallet.** Läs dagens pauspunkt, getReply.js, addToCartTool.js och createAddToCartAction.js före kodförslag. Första föreslagna lilla experiment är separat strukturerad tolkning i parseCartIntent.js (filen finns ännu inte), testad utan kundvagnsändring mot tydlig add-begäran, vanlig fråga och oklart produktval. Bedöm utfallet innan integration och undvik dubbel exekvering. Det synliga godkännandekriteriet är ett verkligt nytt tillägg som ökar rätt produkt från 1 till 2, med en bekräftelse som motsvarar faktisk åtgärd. Därefter byggs borttagning. Sara skriver implementationen själv i små steg; ingen mer kod vid dagens paus.
+**Koppla in borttagningens backendgren och frontendens remove_from_cart-hantering.** Funktion och tool finns redan och är direktprovade, men den sparade koden har ännu bara importen i getReply. Börja där, inte med fler promptjusteringar eller en ny remove-funktion. Verifiera därefter 2 → 1 → 0 i synlig kundvagn, innehållsfråga och nekande utan ändring. Läs dagens pauspunkt innan nästa lilla kodsteg.

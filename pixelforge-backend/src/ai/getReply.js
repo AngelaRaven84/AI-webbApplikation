@@ -23,10 +23,10 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 
 	if (
 		intent.action === 'clarify' ||
-		(intent.action === 'add' && !intent.productName?.trim())
+		(['add', 'remove'].includes(intent.action) && !intent.productName?.trim())
 	) {
 		return {
-			content: 'Vilken produkt vill du lägga till',
+			content: 'Vilken produkt menar du?',
 			sources: [],
 			cartActions: [],
 		};
@@ -49,6 +49,30 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 
 		return {
 			content: `Förberett ett exemplar av ${prepared.action.product.name} för tillägg i kundvagnen.`,
+			sources: [],
+			cartActions: [prepared.action],
+		};
+	}
+
+	if (intent.action === 'remove') {
+		const removeTool = createRemoveFromCartTool(cart);
+
+		const result = await removeTool.invoke({
+			productName: intent.productName,
+		});
+
+		const prepared = JSON.parse(result);
+
+		if (
+			prepared.status !== 'prepared' ||
+			prepared.action?.type !== 'remove_from_cart' ||
+			typeof prepared.action.productId !== 'string'
+		) {
+			throw new Error('Ogiltig borttagningsåtgärd.');
+		}
+
+		return {
+			content: `Förberett borttagning av ett exemplar av ${prepared.action.name} från kundvagnen.`,
 			sources: [],
 			cartActions: [prepared.action],
 		};

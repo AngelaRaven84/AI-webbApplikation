@@ -10,6 +10,8 @@ export const useChat = () => {
 			for (const action of data.cartActions ?? []) {
 				if (action.type === 'add_to_cart') {
 					useCartStore.getState().addToCart(action.product);
+				} else if (action.type === 'remove_from_cart') {
+					useCartStore.getState().removeFromCart(action.productId);
 				}
 			}
 
