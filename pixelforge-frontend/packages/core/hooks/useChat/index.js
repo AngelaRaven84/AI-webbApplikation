@@ -7,6 +7,7 @@ export const useChat = () => {
 	const { mutate, isPending, error } = useMutation({
 		mutationFn: sendChatMessage,
 		onSuccess: (data) => {
+			setPendingCartAction(data.pendingCartAction ?? null);
 			for (const action of data.cartActions ?? []) {
 				if (action.type === 'add_to_cart') {
 					useCartStore.getState().addToCart(action.product);
@@ -28,6 +29,7 @@ export const useChat = () => {
 	});
 
 	const [messages, setMessages] = useState([]);
+	const [pendingCartAction, setPendingCartAction] = useState(null);
 
 	const sendMessage = (content) => {
 		const text = content.trim();
@@ -58,6 +60,7 @@ export const useChat = () => {
 				content,
 			})),
 			cart,
+			pendingCartAction,
 		});
 	};
 

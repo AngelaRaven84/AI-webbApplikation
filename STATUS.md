@@ -1,22 +1,21 @@
 # PixelForge AI-assistent – status och plan
 
-Senast uppdaterad: **26 oktober 2026**.
+Senast uppdaterad: **27 oktober 2026**.
 
 Det här är vår gemensamma plats för beslut, tankar, verifierad status och nästa steg. Bocka bara av arbete som faktiskt är gjort och ange vad som har testats. Planering är inte färdig funktionalitet.
 
-## Nuläge – 26 oktober
+## Nuläge – 27 oktober
 
-- Grundchatten fungerar genom frontend → Express → Ollama, inklusive historik och relevanta följdfrågor enligt Saras tester.
-- Backend använder produkt-API:et via `fetchProducts` → `searchProducts` → `search_products`. Sökning efter namn/märke/kategori, maxpris och lager finns.
-- RAG är inkopplad som `search_support`: fråga → embedding → Supabase `match_documents` → fyra dokumentutdrag med källmetadata → dokumentbaserat svar.
-- Sara har skapat ett eget PixelForge-projekt i Supabase, laddat in dokumenten och verifierat sökning från backend. Nycklar hålls i backendens lokala .env; inga hemligheter återges här.
-- Lokalt PDF-test: 20 PDF-filer → 54 sidbaserade dokumentdelar → 161 chunks. Två databasrader visar text, source, documentId och 1024-dimensionella embeddings. Totalt radantal i databasen har inte visats i samtalet.
-- Modell: `qwen3:4b-instruct`; embeddingmodell: `qwen3-embedding:0.6b`, verifierad dimension 1024. Backend/API använder port 8080, Ollama 11434.
-- Produktfråga, inga träffar, kategoribyte med historik, supportfråga, supportföljdfråga, blandad fråga och saknat dokumentunderlag har provats av Sara. Frontend-lint/build passerade efter senaste ändringen enligt Sara.
-- Dokumentlänkar (VG) fungerar: strukturerade käll-id:n matchas mot frontendens befintliga dokumentlista och länkar till rätt supportsida. Sara har verifierat klick och att chatten finns kvar.
-- Kundvagnstillägg hanteras nu av separat strukturerad tolkning och direkt verktygsanrop i backend. Sara har verifierat första tillägg, ”ett exemplar till” (1 → 2), fråga om innehåll utan ändring samt nekande utan ändring efter tvåstegstolkningen. Borttagningsfunktion och tool är byggda och direktprovade, men ännu inte inkopplade hela vägen till webbchatten. VG-kundvagnsdelen är fortfarande pågående.
-- UI är fortfarande enkelt; öppna/stänga, hörnplacering och styling återstår. Se dagens pauspunkt för exakt status och återstart.
-- Ingen ny implementation vid dagens paus. Sara uppdaterar själv GitHub och sitt Project-board.
+- Frontend, Express, Ollama, produktverktyg och Supabase-RAG är inkopplade. Modeller: qwen3:4b-instruct och qwen3-embedding:0.6b (1024 dimensioner).
+- Kundvagnen kan nu både utökas och minskas genom chatten och relevanta följdfrågor. Sara har verifierat synliga ändringar, inklusive 2 → 1 → 0.
+- Otydlig borttagning mellan flera produkter ber om precisering. pendingCartAction förs frontend → route → getReply → parseCartIntent; ett exakt produktnamn kan slutföra den väntande borttagningen.
+- Avbrytande lämnar kundvagnen oförändrad och rensar väntande åtgärd inför nästa anrop, verifierat av Sara.
+- Produktfrågor hämtar nu kontrollerade API-resultat och formateras i kod. Supportfrågor hämtar dokument innan svar genereras. Blandade frågor kör båda delarna; tangentbord + frakt har provats med rätt produkt, pris, lager och länkar.
+- Känd brist: modellen skrev fortfarande ”över 1 500” i fraktsvaret där underlaget säger ”1 500 kr eller mer”. Direkt följdfråga om exakt 1 500 kr gav rätt svar (ja); formuleringen är inte löst.
+- Dokumentlänkar fungerar enligt Saras klicktest. Alla hämtade underlag visas; strikt urval av bara relevanta/använda källor återstår.
+- Agenten körde frontend-ESLint med godkänt resultat under dagens kravgranskning och syntaxkontroll av slutlig getReply.js med godkänt resultat. Ingen ny produktionsbuild eller fullständig G/VG-regression kördes idag.
+- Uppdelning av prompt/ansvar, samlad G/VG-kontroll, dokumentationsöversyn och enkel design återstår. VG är inte slutligt avbockat som helhet.
+- Sara pausar till 28 oktober. Endast STATUS.md uppdateras vid pausen; ingen implementation, commit, push eller boardändring görs.
 
 ## Beslut vi har tagit
 
@@ -45,7 +44,7 @@ Produktverktyget, tills vidare kallat `searchProducts`, ligger bredvid och hämt
 | Dokumentfunktion + support-tool | Söka relevanta chunks i Supabase och returnera text samt källmetadata. |
 | PDF-seed | Förbereda dokument, metadata och embeddings inför sökning. Körs separat från vanliga chattfrågor. |
 
-Vi använder ingen separat klassificeringsrouter. Implementerade verktygsnamn är `search_products` och `search_support`, med funktionerna searchProducts och searchSupport bakom. Modellen väljer verktyg; backend utför dem.
+Historiskt beslut (ersatt i delar 26–27 oktober): vi började utan separat klassificeringsrouter. Nu används parseCartIntent och parseSupportIntent för kodstyrda flöden, med en allmän verktygsloop som reserv. Ursprungliga verktygsnamn är `search_products` och `search_support`, med funktionerna searchProducts och searchSupport bakom. Modellen väljer verktyg; backend utför dem.
 
 Varför vi väljer detta:
 
@@ -81,9 +80,9 @@ Avbockningen ovan avser implementerat grundflöde och de manuella scenarier Sara
 
 Dessa punkter ingår som planeringsunderlag; G-flödet byggs först.
 
-- [ ] Lägg till produkter genom chatten, även genom följdfrågor.
-- [ ] Ta bort produkter genom chatten, även genom följdfrågor.
-- [ ] Kundvagnsändringar syns i webbshoppens befintliga kundvagn.
+- [x] Lägg till produkter genom chatten, även genom följdfrågor (testade scenarier).
+- [x] Ta bort produkter genom chatten, även genom följdfrågor (testade scenarier; se begränsningar 27 oktober).
+- [x] Kundvagnsändringar syns i webbshoppens befintliga kundvagn.
 - [x] Dokumentbaserade svar länkar till rätt dokuments egen sida i PixelForge.
 - [ ] Modulär och skalbar kod följer startkodens arkitektur och ansvarsfördelning.
 
@@ -308,7 +307,7 @@ Verifierat av Sara:
 - Aktuell branch vid pauskontroll: `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`. Arbetsytan var ren före denna STATUS-uppdatering.
 - Agenten har läst aktuella sparade filer men inte kört om UI/modelltester, lint eller build. Manuella resultat ovan kommer från Saras tester och loggar. Endast STATUS.md ändras vid denna paus; inga commits, pushar eller boardändringar görs.
 
-## Pauspunkt – måndag 26 oktober 2026, tillägg fungerar och borttagning förberedd
+## Historisk pauspunkt – måndag 26 oktober 2026, tillägg fungerar och borttagning förberedd
 
 Sara avslutar för dagen och vill fortsätta tisdag 27 oktober. Ingen ytterligare implementationskod ändras vid denna paus. Detta avsnitt och Nuläge gäller framför historiska felbeskrivningar från 23 oktober.
 
@@ -384,6 +383,65 @@ Gör ett litet kodsteg i taget och kontrollera filerna före instruktioner så a
 
 Kontrollerat 26 oktober: branch `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`, ren arbetsyta före denna dokumentationsuppdatering. Endast STATUS.md uppdateras av agenten. Ingen implementation, commit, push eller boardändring görs vid pausen. Sara återupptar arbetet 27 oktober.
 
+## Pauspunkt – tisdag 27 oktober 2026
+
+Detta avsnitt och Nuläge ovan gäller framför äldre pausbeskrivningar. Sara vill fortsätta onsdag 28 oktober; funktionalitet och slutkontroller kommer före design.
+
+### Genomfört idag
+
+- Kopplat removeFromCartTool hela vägen genom getReply och cartActions till befintlig Zustand-store. Ett exemplar minskas per åtgärd och raden tas bort vid noll.
+- Åtgärderna add/remove går separat från den allmänna modellens verktygsloop. Produktnamn kontrolleras mot API eller aktuell kundvagn; verkliga produkt-id:n används av frontend.
+- Efter regressioner med påhittade supportvillkor och produkter infördes explicit strukturerad behovstolkning i parseSupportIntent: needsSupport/query, needsProducts/productQuery, maxPrice och inStockOnly. Den används för kodstyrd hämtning av underlag.
+- Ren produktfråga hämtas via befintligt searchProductsTool och visas med namn, märke, pris och lager direkt från resultatet. Detta ersätter modellens fria produktsammanställning i den grenen.
+- Ren supportfråga hämtar searchSupportTool före llm-svaret, med source-id:n separat från modelltexten.
+- Blandade produkt-/supportfrågor rättades: produktgrenen körs före supportgrenen och returnerar bara direkt när support inte behövs. Vid båda behoven kombineras productContent med supportsvaret och dokumentkällor.
+- Supportmodellens senaste fråga begränsas till den fristående supportfrågan; den ska inte försöka hitta produkter i dokumentutdragen.
+- parseCartIntent begränsar modellens borttagningsval till id:n i aktuell kundvagn. Detta räckte inte för att förhindra godtyckliga val mellan flera produkter; därför kräver flerproduktsfallet ett entydigt fullständigt produktnamn i meddelandet.
+- Förtydligandeflöde för remove: parseCartIntent returnerar pendingAction: remove internt; getReply skickar pendingCartAction: remove externt. useChat sparar värdet och API-funktionen skickar det med nästa begäran. Routen validerar null/remove och för det vidare.
+- Vid väntande remove matchas ett svar med bara exakt produktnamn mot aktuell cart innan modellklassificering. En enda match ger remove. Andra meddelanden går vidare till befintlig tolkning.
+- Frontend sätter pendingCartAction till svarsvärdet eller null vid onSuccess. Payload för själva avbrytandet kan därför fortfarande ha remove; först nästa anrop visar att vänteläget rensats.
+- Skrivfel i content/response och sammanfogningen av dokumenttext rättades. Syntaxkontroll av sparad getReply.js passerade.
+
+### Manuellt verifierat av Sara
+
+- Tangentbordssökning → tillägg → ”en till” → borttagning → ”ta bort ett till” → tom kundvagn; synligt innehåll följde varje åtgärd.
+- Fraktfråga återgav 69 kr med klickbara dokumentlänkar efter tidigare regression där ingen dokumentsökning gjordes.
+- Headsetsökningen listade riktiga API-produkter. G Pro X 2 Lightspeed lades till med rätt produkt och togs bort efter produktidentifiering.
+- Två olika headset + otydlig borttagning gav clarify, följdfråga och ingen ändring.
+- Efter pendingCartAction-kopplingen räckte exakt produktnamn som svar på preciseringen för rätt borttagning på första försöket.
+- ”Nej, ta inte bort något” ändrade inget och bekräftades i chatten. Nästa anrops payload visade att pendingCartAction rensats.
+- Blandfrågan om tangentbord under 1 500 kr i lager samt standardfrakt gav Alloy Origins Core TKL, HyperX, 999 kr, 32 i lager samt 69 SEK och dokumentlänkar.
+- Direkt följdfråga om gratisfrakt vid exakt 1 500 kr efter rabatter gav ja.
+
+Detta är verifierade scenarier, inte garanti för alla formuleringar. Ingen ny fullständig G/VG-genomgång genomförd efter sista ändringen.
+
+### Kända begränsningar och dokumentationsrättelse
+
+- Fraktens gränsvärde formulerades fel i blandfrågans svar: ”över 1 500” trots inkluderande gräns i underlaget. En korrekt följdfråga löser inte ursprungstextens fel.
+- Flera produkter i cart kräver idag fullständigt produktnamn vid borttagning; naturliga kortnamn som ”Logitech-headsetet” är då inte generellt lösta.
+- Väntande precisering implementeras för remove, inte generellt för add. Felaktigt/okänt svar hanteras inte som en fullständig dialogmaskin.
+- Alla hämtade dokument-id:n länkas, inte en verifierad lista över bara källor som bidragit till svaret.
+- getReply.js samlar många ansvar och den långa systemprompten ligger kvar där. Planerad mindre uppdelning är inte gjord.
+- Förväntade produkt-/kundvagnsfel kan fortfarande ge generellt HTTP 500. Antal/flera produkter per request, lager relativt cart-antal, full produktvalidering och idempotens är inte generellt implementerade.
+- Backendens README finns som pixelforge-backend/README-backend.md. Tidigare påstående att backenddokumentation saknas var fel. Rotens README länkar till README.md i backend, vilket behöver rättas; backendtexten beskriver fortfarande startkod och gamla modellexempel.
+- Design, öppna/stänga och språk/Markdown-puts är inte färdiga och har uttryckligen skjutits till nästa arbetspass.
+
+### Kravgranskning och verifieringsgränser
+
+- G-grundens tekniker och dataflöden finns; följdfrågor och saknat underlag har testats under arbetet. En samlad kontroll av slutläget återstår.
+- VG-kundvagnens centrala flöden och interna dokumentlänkar har manuellt verifierats. Modulär struktur har god grund men behöver putsas; källrelevans och namnhantering har begränsningar ovan.
+- Frontend-ESLint passerade vid agentens kontroll idag. Node --check av slutlig getReply.js passerade. Ingen produktionsbuild, ny seed, automatisk testsvit eller full live-regression kördes av agenten.
+- Agenten gör endast denna dokumentationsändring vid pausen. Sara hanterar GitHub och Project-board själv. Git-status kontrolleras separat före ändringen.
+
 ## Nästa steg
 
-**Koppla in borttagningens backendgren och frontendens remove_from_cart-hantering.** Funktion och tool finns redan och är direktprovade, men den sparade koden har ännu bara importen i getReply. Börja där, inte med fler promptjusteringar eller en ny remove-funktion. Verifiera därefter 2 → 1 → 0 i synlig kundvagn, innehållsfråga och nekande utan ändring. Läs dagens pauspunkt innan nästa lilla kodsteg.
+**Börja 28 oktober med en mindre, beteendebevarande uppdelning av getReply.js och prompterna.** Läs aktuell kod först och flytta en tydlig ansvarsenhet i taget.
+
+Följ sedan Saras beslutade ordning:
+
+1. Uppsnyggning och finslipning av kod/svar, inklusive felaktiga gränsvärdesformuleringar och källrelevans.
+2. Samlad G- och VG-kontroll mot README: produkter, support, historik, blandfrågor, inga träffar/saknat underlag, add/remove/följdfrågor, precisering/avbrytande, synlig cart, riktiga dokumentlänkar och återhämtning efter fel. Kör aktuell frontend-lint/build och relevanta backendkontroller.
+3. Gå igenom installations-/start-/miljövariabeldokumentation och rätta README-länkar utan hemligheter.
+4. Enkel chatt-/formulärdesign som passar befintliga PixelForge, med vänteläge, felvisning och användbarhet. Ingen större redesign.
+
+Ingen finslipning eller design implementeras vid dagens paus.
