@@ -184,6 +184,47 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 		};
 	}
 
+	if (supportIntent.needsProducts && !supportIntent.needsSupport) {
+		const query = supportIntent.productQuery;
+
+		if (typeof query !== 'string') {
+			throw new Error('Produktsökningen saknar söktext.');
+		}
+
+		const result = await searchProductsTool.invoke({
+			query,
+			maxPrice: supportIntent.maxPrice ?? undefined,
+			inStockOnly: supportIntent.inStockOnly,
+		});
+
+		const products = JSON.parse(result);
+
+		if (!Array.isArray(products)) {
+			throw new Error('Produktverktygen returnerade ett oväntat format.');
+		}
+
+		console.log('Produktsökning:', {
+			query,
+			ids: products.map((product) => product.id),
+		});
+
+		const content =
+			products.length === 0
+				? 'Inga produkter matchade sökvillkoren.'
+				: products
+						.map(
+							(product) =>
+								`${product.name}\n Märke: ${product.brand}\n Pris: ${product.price} kr\n I lager: ${product.stock} st`,
+						)
+						.join('\n\n');
+
+		return {
+			content,
+			sources: [],
+			cartActions: [],
+		};
+	}
+
 	let response = await modelWithTools.invoke(messages);
 	console.dir(response.tool_calls, { depth: null });
 
