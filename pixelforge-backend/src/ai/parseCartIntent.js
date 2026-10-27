@@ -46,6 +46,23 @@ export const parseCartIntent = async ({ message, cart, history = [] }) => {
 			return { action: 'clarify', productName: null };
 		}
 
+		if (cart.length > 1) {
+			const normalizedMessage = message.toLowerCase();
+
+			const matches = cart.filter((item) =>
+				normalizedMessage.includes(item.name.toLowerCase()),
+			);
+
+			if (matches.length !== 1) {
+				return { action: 'clarify', productName: null };
+			}
+
+			return {
+				action: 'remove',
+				productName: matches[0].name,
+			};
+		}
+
 		const productIds = [...new Set(cart.map((item) => item.productId))];
 
 		const selectionModel = llm.withStructuredOutput(
