@@ -1,11 +1,20 @@
 import { useMutation } from '@tanstack/react-query';
 import { sendChatMessage } from '@pixelforge/api';
 import { useState } from 'react';
+import { useCartStore } from '@pixelforge/usecartstore';
 
 export const useChat = () => {
 	const { mutate, isPending, error } = useMutation({
 		mutationFn: sendChatMessage,
 		onSuccess: (data) => {
+			for (const action of data.cartActions ?? []) {
+				if (action.type === 'add_to_cart') {
+					useCartStore.getState().addToCart(action.product);
+				} else if (action.type === 'remove_from_cart') {
+					useCartStore.getState().removeFromCart(action.productId);
+				}
+			}
+
 			setMessages((previous) => [
 				...previous,
 				{
@@ -34,12 +43,21 @@ export const useChat = () => {
 			},
 		]);
 
+		const cart = useCartStore
+			.getState()
+			.cart.map(({ productId, name, qty }) => ({
+				productId,
+				name,
+				qty,
+			}));
+
 		mutate({
 			message: text,
 			history: messages.map(({ role, content }) => ({
 				role,
 				content,
 			})),
+			cart,
 		});
 	};
 

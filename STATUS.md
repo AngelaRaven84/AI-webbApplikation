@@ -1,10 +1,10 @@
 # PixelForge AI-assistent – status och plan
 
-Senast uppdaterad: **22 oktober 2026**.
+Senast uppdaterad: **26 oktober 2026**.
 
 Det här är vår gemensamma plats för beslut, tankar, verifierad status och nästa steg. Bocka bara av arbete som faktiskt är gjort och ange vad som har testats. Planering är inte färdig funktionalitet.
 
-## Nuläge – 22 oktober
+## Nuläge – 26 oktober
 
 - Grundchatten fungerar genom frontend → Express → Ollama, inklusive historik och relevanta följdfrågor enligt Saras tester.
 - Backend använder produkt-API:et via `fetchProducts` → `searchProducts` → `search_products`. Sökning efter namn/märke/kategori, maxpris och lager finns.
@@ -13,7 +13,9 @@ Det här är vår gemensamma plats för beslut, tankar, verifierad status och n�
 - Lokalt PDF-test: 20 PDF-filer → 54 sidbaserade dokumentdelar → 161 chunks. Två databasrader visar text, source, documentId och 1024-dimensionella embeddings. Totalt radantal i databasen har inte visats i samtalet.
 - Modell: `qwen3:4b-instruct`; embeddingmodell: `qwen3-embedding:0.6b`, verifierad dimension 1024. Backend/API använder port 8080, Ollama 11434.
 - Produktfråga, inga träffar, kategoribyte med historik, supportfråga, supportföljdfråga, blandad fråga och saknat dokumentunderlag har provats av Sara. Frontend-lint/build passerade efter senaste ändringen enligt Sara.
-- VG-länkar till interna dokumentsidor och kundvagnsverktyg återstår. UI är fortfarande enkelt; öppna/stänga, hörnplacering och styling återstår.
+- Dokumentlänkar (VG) fungerar: strukturerade käll-id:n matchas mot frontendens befintliga dokumentlista och länkar till rätt supportsida. Sara har verifierat klick och att chatten finns kvar.
+- Kundvagnstillägg hanteras nu av separat strukturerad tolkning och direkt verktygsanrop i backend. Sara har verifierat första tillägg, ”ett exemplar till” (1 → 2), fråga om innehåll utan ändring samt nekande utan ändring efter tvåstegstolkningen. Borttagningsfunktion och tool är byggda och direktprovade, men ännu inte inkopplade hela vägen till webbchatten. VG-kundvagnsdelen är fortfarande pågående.
+- UI är fortfarande enkelt; öppna/stänga, hörnplacering och styling återstår. Se dagens pauspunkt för exakt status och återstart.
 - Ingen ny implementation vid dagens paus. Sara uppdaterar själv GitHub och sitt Project-board.
 
 ## Beslut vi har tagit
@@ -82,7 +84,7 @@ Dessa punkter ingår som planeringsunderlag; G-flödet byggs först.
 - [ ] Lägg till produkter genom chatten, även genom följdfrågor.
 - [ ] Ta bort produkter genom chatten, även genom följdfrågor.
 - [ ] Kundvagnsändringar syns i webbshoppens befintliga kundvagn.
-- [ ] Dokumentbaserade svar länkar till rätt dokuments egen sida i PixelForge.
+- [x] Dokumentbaserade svar länkar till rätt dokuments egen sida i PixelForge.
 - [ ] Modulär och skalbar kod följer startkodens arkitektur och ansvarsfördelning.
 
 ## Arbetsplan – underlag till GitHub Project
@@ -172,7 +174,7 @@ Agenten har läst aktuella sparade filer och verifierat att ovanstående delar f
 - Vid pausuppdateringen: branch `7-chattens-ui`, spårar `origin/7-chattens-ui`, fyra lokala commits före remote. Arbetsytan var ren före uppdateringen av denna fil.
 - Agenten har endast uppdaterat STATUS.md i detta pass; ingen kod, commit, push eller boardändring utförd.
 
-## Pauspunkt – 22 oktober 2026, produkt-tools och RAG fungerar
+## Historisk pauspunkt – 22 oktober 2026, produkt-tools och RAG fungerar
 
 Sara pausar för dagen. Nästa implementation tas i små steg nästa arbetspass.
 
@@ -235,6 +237,153 @@ Agenten har granskat sparade filer vid pausuppdateringen, men har inte kört om 
 
 Vid kontrollen: branch `12-dokumenthämtning`, spårar `origin/12-dokumenthämtning`, ren arbetsyta före denna uppdatering. Historiska branchuppgifter ovan avser 21 oktober. Endast STATUS.md uppdateras av agenten; Sara sköter GitHub, commits/push och Project-board själv.
 
+## Historisk pauspunkt – 23 oktober 2026, dokumentlänkar klara och kundvagn pågår
+
+Sara pausar för dagen och vill återuppta med ett tydligt litet steg imorgon. Ingen ytterligare implementationskod ändras vid denna paus. Historiska avsnitt ovan beskriver tidigare lägen; detta avsnitt gäller nu.
+
+### Arkitekturbeslut och jämförelse med Jespers exempel
+
+- Jespers exempel `week-43-lecture-23-okt` lästes vid revision f1423e2ae1d2373a51c62a6e0ee0507817ad1eff. Det använder en modellrouter som väljer rag eller tools, separat standalone-question-kedja och separata promptfiler.
+- Vi behåller vår gemensamma verktygsväg: search_products och search_support, med kundvagnsverktyg bredvid. Sara vill inspireras av uppdelningen av prompter/ansvar. Prompten ligger ännu i getReply.js; utflyttning till egen fil är planerad, inte gjord.
+- Läs alltid aktuell kod före nästa kodinstruktion och återanvänd befintliga funktioner. Ingen ny fetchDocuments behövdes i backend: frontend har redan API-hämtningen för id/title/slug, backend har RAG-sökningen i Supabase.
+
+### Dokumentlänkar – implementerat och verifierat av Sara
+
+- getReply samlar unika documentId från verkliga supportverktygsresultat i ett Set, separat från modellens fritext. sources innehåller dokument-id:n som strängar.
+- API-svaret har content och sources direkt på översta nivån; routen använder res.json(reply), inte res.json({ reply }). Nu finns också cartActions, se nedan.
+- useChat sparar sources på assistentmeddelandet, med tom lista som standard.
+- Chat återanvänder fetchDocuments med TanStack Query, queryKey ['documents'], aktiverad när meddelanden har källor. Ingen extra backendhämtning infördes.
+- Länkar renderas med React Routers Link: matcha source-id mot dokumentets id, använd title som text och /support/ + encodeURIComponent(slug) som destination.
+- Verifierad koppling: doc-001 → shipping-information → Shipping Information. Sara klickade länkar och fick rätt supportsida med chatten kvar.
+- Rubriken är ”Hämtade underlag”: alla hämtade dokument visas, inte bara dokument som bevisligen användes i slutsvaret. Fyra träffar kan inkludera mindre relevanta dokument.
+- Frontend-lint och build passerade enligt Sara efter denna del. Ett JSX-fel rättades: messages.map behöver returnera JSX via parenteser eller explicit return.
+- Modelltext visas fortfarande i p-tagg; Markdown i fritexten renderas inte. Dokumentlänkarna fungerar som separata React-element och är inte beroende av modellens egna URL:er.
+
+### Kundvagn – vad som finns nu
+
+- Befintlig Zustand-store används. addToCart(product) ökar ett exemplar; removeFromCart(productId) minskar ett och tar bort raden när qty blir noll. Ingen ny parallell kundvagn har skapats.
+- useChat läser useCartStore.getState().cart vid varje skickning och skickar productId, name och qty till backend. Backend validerar listans format och positiva heltalsantal och för den till getReply.
+- Aktuell kundvagn läggs som ett datameddelande EFTER tidigare historik och före senaste frågan. Placeringen och regeln om att [] betyder tom kundvagn förbättrade det tidigare felaktiga svaret från gammal historik.
+- Sara verifierade att en produkt nämns, att tömd kundvagn beskrivs som tom och att en ny produkt efteråt syns i svaret, i samma samtal.
+- `src/tools/cart/createAddToCartAction.js` hämtar produkter från befintliga fetchProducts och matchar produktnamnet exakt efter trim/lowercase. Noll träffar och flera träffar stoppas, liksom stock < 1. Det riktiga id:t, priset och hela produktobjektet hämtas från API:et.
+- Funktionen tar numera productName, inte productId. Orsak: modellen hittade på id:n som HB-1024 och KB-HX-ORIG-01. Dessa stoppades korrekt av API-kontrollen men gav generellt 500-fel till UI.
+- `src/tools/cart/addToCartTool.js` definierar add_to_cart med productName i Zod-schema. Returnerar JSON med status: prepared och action: { type: add_to_cart, product }.
+- getReply registrerar verktyget och samlar dess kontrollerade åtgärd i cartActions. Slutligt API-kontrakt: { content, sources, cartActions }.
+- Frontendens useChat.onSuccess utför varje add_to_cart i cartActions via befintlig stores addToCart(action.product), före meddelandet läggs till. Det görs inte vid rendering av gamla meddelanden.
+- getReply har nu högst TVÅ verktygsrundor. Efter första rundan anropas modelWithTools igen; efter andra används llm utan tools för slutsvar. Detta finns nu i sparad kod, till skillnad från pauspunkten 22 oktober. Sekventiell sökning → tillägg i samma request har inte visats i lyckad testlogg; tillägget lyckades direkt med produktnamn efter tidigare produktfråga.
+- Routen loggar nu verkliga fel med console.error('Chatfel:', error), men returnerar fortfarande generellt 500-meddelande till UI.
+
+### Testat och kvarvarande fel
+
+Verifierat av Sara:
+
+- Direkt produktuppslag med productName: Alloy Origins Core TKL → add_to_cart, pf-063, rätt produkt.
+- addToCartTool direkt → prepared-action med rätt produkt.
+- Chattens produktsökning → följdfrågan ”Lägg till det tangentbordet i kundvagnen” gav add_to_cart med productName: Alloy Origins Core TKL.
+- API-svaret innehöll en add_to_cart-action med pf-063 och frontend visade ett rätt tangentbord i webbshoppens kundvagn. Detta bevisar ett första tillägg hela vägen, inte samtliga mängd-/följdfrågefall.
+- Frontend-lint rapporterades godkänd under kundvagnsförberedelsen. Ingen slutlig lint/build efter alla kundvagnsändringar har rapporterats; senaste godkända build avser dokumentlänksdelen.
+
+**Aktivt fel vid paus:** ”Lägg till ett exemplar till av samma tangentbord” ger ett textsvar som påstår att tillägget sker men inget add_to_cart-anrop och ingen ändring i kundvagnen. Extra promptregler finns sparade men löste inte problemet. Inget godkänt 1 → 2-test ännu. Gör inte fler liknande prompttillägg utan att kontrollera faktisk verktygs-/åtgärdskedja.
+
+### Föreslaget nästa spår – INTE implementerat
+
+- Agenten föreslog `src/ai/parseCartIntent.js`: separat strukturerad tolkning med action: add | none | clarify och productName: string | null.
+- **Filen finns inte vid pauskontrollen. Inget direktprov eller integration är gjort.** Förslaget är ett experiment för kundvagnsföljdfrågor, inte ett verifierat byte av arkitektur eller en färdig garanti.
+- Tanken är att skilja modellens tolkning från kodens exekvering: om en tydlig tilläggsbegäran identifierats och produktkontrollen lyckas ska kod anropa befintligt verktyg. Ett vanligt modellsvar ska inte kunna ersätta en kundvagnsåtgärd.
+- Strukturerat svar garanterar format, inte korrekt förståelse eller användaravsikt. Prova först separat med en tilläggsbegäran, en fråga utan ändringsbegäran och ett oklart val mellan flera produkter innan något kopplas in.
+- Tänk igenom integrationen före aktivering: samma begäran får inte utföras både via separat tolkning och via den befintliga toollopen. Bekräftelse i UI bör bygga på utförd store-ändring, inte enbart modelltext.
+
+### Återstår efter det aktiva felet
+
+- Stabilt öka samma produkt från 1 till 2 via naturlig följdfråga; säkerställ även att produktfrågor inte ändrar kundvagnen.
+- Ta bort via chatt med aktuell kundvagn som grund, inklusive antal och följdfrågor. Inget remove-tool är byggt.
+- Hantera förväntade fel (saknad/oklar/slut produkt) begripligt utan att hela anropet bara blir ett generellt modellfel.
+- Lagerkontrollen gäller idag stock > 0, inte sammanlagt antal i befintlig kundvagn. Inga idempotensnycklar eller skydd mot upprepade likadana cartActions finns. Två modellrundor kan därför också behöva skydd mot oavsiktlig dubbel åtgärd.
+- Fullständig validering av produktfält saknas; ett större verktygsschema ersätter inte API-/affärskontroller.
+- UI, språk/Markdown, promptuppdelning och inlämningsdokumentation återstår enligt planen. Slutlig frontend-lint/build och relevanta backendkontroller görs efter nästa stabila ändring.
+
+### Git och verifieringsgräns för pausuppdateringen
+
+- Dokumentlänksarbetet råkade först ligga på den gamla lokala 12-dokumenthämtning efter att PR:n mergats. Det räddades till feature/dokumentlankar från origin/dev med tre cherry-pickade commits; identiskt filinnehåll verifierades. Sara uppgav därefter att det publicerats/mergats till dev och att hon bytt till kundvagnsbranch.
+- Aktuell branch vid pauskontroll: `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`. Arbetsytan var ren före denna STATUS-uppdatering.
+- Agenten har läst aktuella sparade filer men inte kört om UI/modelltester, lint eller build. Manuella resultat ovan kommer från Saras tester och loggar. Endast STATUS.md ändras vid denna paus; inga commits, pushar eller boardändringar görs.
+
+## Pauspunkt – måndag 26 oktober 2026, tillägg fungerar och borttagning förberedd
+
+Sara avslutar för dagen och vill fortsätta tisdag 27 oktober. Ingen ytterligare implementationskod ändras vid denna paus. Detta avsnitt och Nuläge gäller framför historiska felbeskrivningar från 23 oktober.
+
+### Dagens ändrade flöde
+
+- `src/ai/parseCartIntent.js` är nu byggd och inkopplad i början av getReply. Det tidigare förslaget från fredag är alltså inte längre bara planerat.
+- Kundvagnsändringar går en separat kodväg. getReply binder endast searchProductsTool och searchSupportTool till den allmänna chattmodellen. addToCartTool anropas direkt av kod vid intent.action === add och kan därför inte dessutom köras i den vanliga toollopen.
+- Vid add kontrollerar befintligt tool produktnamnet mot produkt-API:et och returnerar prepared-action. getReply returnerar { content, sources: [], cartActions: [action] }. Frontend utför via useCartStore i onSuccess.
+- API-fältet är cartActions (plural). Felstavningen cartAction rättades; annars ignorerade frontend åtgärdslistan.
+- Systemprompten i getReply har nu tydliga avsnitt för produkter, support, aktuell kundvagn och underlag/historik. Gamla instruktioner om att den allmänna modellen ska anropa add_to_cart är borttagna. Prompten ligger fortfarande i getReply.js, inte separat fil.
+- Bekräftelsetext från backend säger att tillägget är förberett. Separat UI-bekräftelse grundad i utförd storeändring är fortfarande inte byggd.
+
+### Varför tvåstegstolkning behövdes
+
+- Första versionen tolkade senaste fråga, historik och cart tillsammans. Den svarade ibland clarify/none även vid explicit produktnamn. Promptförtydligande med exempel förbättrade add-tolkningen.
+- Ett kritiskt motprov visade sedan att ”Vad ligger i min kundvagn?” med gamla tillägg i historiken felklassificerades och faktiskt lade till ytterligare ett tangentbord.
+- Därför kör parseCartIntent nu först actionModel med ENDAST senaste message: klassificera add/remove/none, utan historiken. none returnerar direkt { action: none, productName: null }.
+- Endast vid ändringsbegäran körs intentModel med message, cart och history för att identifiera produktnamn och eventuellt clarify.
+- Första schemas action är nu add/remove/none; det andra har add/remove/none/clarify. Produktvalets andra modellreturn kan fortfarande innehålla en annan action än första beslutet: koden låser ännu inte operationen till första stegets beslut. Detta är en kvarvarande gräns att känna till, inte en garanti för alla formuleringar.
+- All tolkning är fortfarande modellbaserad. Strukturerat format är inte bevis på korrekt användaravsikt. Bevara de negativa testen vid framtida ändringar.
+
+### Verifierat av Sara idag
+
+- Direkt tolkning: ”Lägg till ett exemplar till av samma tangentbord” med en entydig kundvagn → add och Alloy Origins Core TKL.
+- Direkt tolkning: ”Vad ligger i min kundvagn?” och ”Lägg inte till något” → none/null i första isolerade provet.
+- Explicit tillägg med tom cart/history → add och Alloy Origins Core TKL efter promptförtydligandet.
+- Webbchatt: explicit första tillägg och följdfrågan om ett exemplar till gav båda add med rätt namn. Sara såg två tangentbord på samma produktrad, alltså 1 → 2.
+- Efter att tvåstegstolkningen införts: isolerat innehållsfrågeprov med gammalt tillägg i history → none/null.
+- Därefter i samma webbchatt: innehållsfrågan beskrev kundvagnen, terminal visade none och antalet ändrades inte.
+- ”Lägg inte till något” gav none, ingen ändring och ett svar om innehållet. Beteendet är verifierat; exakt formulering kan putsas senare.
+- Dagens borttagningsfunktion och tool direktprovades enligt Saras klar. Direkt tolkning: ”Ta bort ett av tangentborden” → remove och Alloy Origins Core TKL; ”Ta inte bort något” → none/null.
+
+Agenten har läst aktuella filer vid pausen men inte kört om modellanrop, manuella UI-tester, lint eller build. Ingen ny slutlig frontend-lint/build eller komplett regression efter dagens ändringar har rapporterats. Äldre godkända kontroller gäller respektive tidigare kodläge.
+
+### Borttagning – exakt sparat läge vid pausen
+
+Byggt och granskat:
+
+- `src/tools/cart/createRemoveFromCartAction.js`: matchar produktnamn exakt efter trim/lowercase i aktuell cart, stoppar noll eller flera matchningar och returnerar { type: remove_from_cart, productId, name }.
+- Borttagningen använder cart-radens riktiga produktId; inget produkt-API behövs för att ta bort en produkt som redan ligger i vagnen.
+- `src/tools/cart/removeFromCartTool.js`: exporterar createRemoveFromCartTool(cart), en factory för requestens aktuella kundvagn. Verktygets productName kommer från tolkningen; cart hämtas inte från modellargument/global backendstate. Returnerar JSON med status: prepared och action.
+- parseCartIntent har utökats för remove enligt ovan. Direktprov av remove och dess nekande lyckades.
+
+**Ännu INTE inkopplat i sparad kod:**
+
+- getReply importerar createRemoveFromCartTool men har ingen if (intent.action === remove)-gren som utför det eller returnerar en remove-action.
+- Kontroll för saknat produktnamn gäller bara add; den behöver omfatta både add och remove.
+- Förtydligandetexten är fortfarande ”Vilken produkt vill du lägga till”; byt till exempelvis ”Vilken produkt menar du?” så det passar båda operationerna.
+- Frontendens useChat.onSuccess hanterar bara add_to_cart, inte remove_from_cart.
+- Sista instruktionen i chatten beskrev dessa tre kopplingar, men de finns inte i sparade filer vid paus. Sara har inte rapporterat något webbtest av borttagning. Återanvänd befintliga removeFromCart(productId) i storen: den minskar ETT exemplar och tar bort raden vid noll.
+
+### Första steg vid återstart
+
+Koppla borttagningen utan att ändra produkt-/supportverktygen:
+
+1. Utöka namnkontrollen i getReply till add/remove och gör förtydligandefrågan generell.
+2. Lägg en remove-gren efter add-grenen: skapa tool med aktuell cart, invoke({ productName }), JSON.parse(result), validera status/type/productId och returnera { content, sources: [], cartActions: [prepared.action] }. Ingen ny kundvagnsstore.
+3. Lägg else if (action.type === remove_from_cart) i frontendens åtgärdsloop och anropa useCartStore.getState().removeFromCart(action.productId).
+4. Verifiera i samma webbchatt med två tangentbord: ”Ta bort ett av tangentborden” → 2 till 1; ”Ta bort ett exemplar till av samma tangentbord” → 1 till 0 och raden försvinner; fråga innehåll → tom cart utan ändring. Negativt prov ”Ta inte bort något” ska ge none och oförändrad cart.
+
+Gör ett litet kodsteg i taget och kontrollera filerna före instruktioner så att samma kod inte byggs igen.
+
+### Återstår efter borttagningskopplingen
+
+- Både add/remove inklusive relevanta följdfrågor och nekanden behöver en samlad kontroll efter integrationen. Testa oklart produktval utan att välja godtyckligt.
+- Förväntade fel (produkten saknas i cart/sortiment, flera namnträffar, slut i lager) leder fortfarande till generellt 500 via routens catch. Begripligt fel-/förtydligandeflöde återstår.
+- Första actionModel täcker bara add/remove/none, inte mer omfattande kombinerade operationer. Flera produkter/antal eller ”ta bort allt” är inte implementerade som särskilda operationer; våra actions gäller ett exemplar per request.
+- Lagerkontroll tar inte hänsyn till befintligt cart-antal; replay/idempotensskydd och fullständiga produktfältkontroller är inte byggda. Detta ska inte beskrivas som verifierat.
+- Regressionsprov av vanlig produktfråga samt RAG-svar med klickbar dokumentlänk behövs efter kundvagnsändringarna, följt av frontend-lint/build och relevanta backendkontroller.
+- UI/styling/öppna-stänga, språk/Markdown, eventuell separat promptfil och slutlig README/inlämningsförberedelse återstår. Dokumentlänkarna är tidigare verifierade; inga ändringar gjorda i dem i detta pauspass.
+
+### Git och pausens omfattning
+
+Kontrollerat 26 oktober: branch `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`, ren arbetsyta före denna dokumentationsuppdatering. Endast STATUS.md uppdateras av agenten. Ingen implementation, commit, push eller boardändring görs vid pausen. Sara återupptar arbetet 27 oktober.
+
 ## Nästa steg
 
-**Bygg riktiga dokumentlänkar i chatten för VG.** Börja med frontendens dokumentdata och route för en enskild supportsida och verifiera kopplingen till chunkarnas documentId. Bestäm därefter ett litet kontrakt för strukturerade källor från backend till frontend och rendera länkarna i React. Ett litet förklarat kodsteg i taget; inga fler ändringar vid dagens paus.
+**Koppla in borttagningens backendgren och frontendens remove_from_cart-hantering.** Funktion och tool finns redan och är direktprovade, men den sparade koden har ännu bara importen i getReply. Börja där, inte med fler promptjusteringar eller en ny remove-funktion. Verifiera därefter 2 → 1 → 0 i synlig kundvagn, innehållsfråga och nekande utan ändring. Läs dagens pauspunkt innan nästa lilla kodsteg.
