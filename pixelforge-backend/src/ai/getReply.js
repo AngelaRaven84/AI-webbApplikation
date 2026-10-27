@@ -157,6 +157,51 @@ export const getReply = async ({
 
 	console.log('Supporttolkning:', supportIntent);
 
+	let productContent = '';
+
+	if (supportIntent.needsProducts) {
+		const query = supportIntent.productQuery;
+
+		if (typeof query !== 'string') {
+			throw new Error('Produktsökning saknar söktext.');
+		}
+
+		const result = await searchProductsTool.invoke({
+			query,
+			maxPrice: supportIntent.maxPrice ?? undefined,
+			inStockOnly: supportIntent.inStockOnly,
+		});
+
+		const products = JSON.parse(result);
+
+		if (!Array.isArray(products)) {
+			throw new Error('Produktverktyget returnerade ett oväntat format');
+		}
+
+		console.log('Produktsökning:', {
+			query,
+			ids: products.map((product) => product.id),
+		});
+
+		productContent =
+			products.length === 0
+				? 'Inga produkter matchade sökvillkoren.'
+				: products
+						.map(
+							(product) =>
+								`${product.name}\nMärke: ${product.brand}\nPris: ${product.price} kr\nI lager: ${product.stock} st`,
+						)
+						.join('\n\n');
+
+		if (!supportIntent.needsSupport) {
+			return {
+				content: productContent,
+				sources: [],
+				cartActions: [],
+			};
+		}
+	}
+
 	if (supportIntent.needsSupport) {
 		const query = supportIntent.query?.trim();
 
@@ -186,52 +231,20 @@ export const getReply = async ({
 			),
 		);
 
-		const answer = await llm.invoke(messages);
+		const answer = await llm.invoke([
+			...messages.slice(0, -1),
+			new HumanMessage(
+				`Besvara endast följande supportfråga utifrån de hämtade utdragen:
+				${query}
+				
+				Produktinformationen hanteras separat.
+				Bevara belopp och gränsvärden exakt som de står i underlaget.`,
+			),
+		]);
 
 		return {
-			content: answer.content,
+			content: [productContent, answer.content].filter(Boolean).join('\n\n'),
 			sources: [...sourceIds],
-			cartActions: [],
-		};
-	}
-
-	if (supportIntent.needsProducts && !supportIntent.needsSupport) {
-		const query = supportIntent.productQuery;
-
-		if (typeof query !== 'string') {
-			throw new Error('Produktsökningen saknar söktext.');
-		}
-
-		const result = await searchProductsTool.invoke({
-			query,
-			maxPrice: supportIntent.maxPrice ?? undefined,
-			inStockOnly: supportIntent.inStockOnly,
-		});
-
-		const products = JSON.parse(result);
-
-		if (!Array.isArray(products)) {
-			throw new Error('Produktverktygen returnerade ett oväntat format.');
-		}
-
-		console.log('Produktsökning:', {
-			query,
-			ids: products.map((product) => product.id),
-		});
-
-		const content =
-			products.length === 0
-				? 'Inga produkter matchade sökvillkoren.'
-				: products
-						.map(
-							(product) =>
-								`${product.name}\n Märke: ${product.brand}\n Pris: ${product.price} kr\n I lager: ${product.stock} st`,
-						)
-						.join('\n\n');
-
-		return {
-			content,
-			sources: [],
 			cartActions: [],
 		};
 	}
