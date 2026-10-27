@@ -30,6 +30,7 @@ export const getReply = async ({ message, history = [], cart = [] }) => {
 			content: 'Vilken produkt menar du?',
 			sources: [],
 			cartActions: [],
+			pendingCartAction: intent.pendingAction ?? null,
 		};
 	}
 

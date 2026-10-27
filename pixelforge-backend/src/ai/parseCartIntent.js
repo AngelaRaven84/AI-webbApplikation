@@ -43,7 +43,7 @@ export const parseCartIntent = async ({ message, cart, history = [] }) => {
 
 	if (decision.action === 'remove') {
 		if (cart.length === 0) {
-			return { action: 'clarify', productName: null };
+			return { action: 'clarify', productName: null, pendingAction: 'remove' };
 		}
 
 		if (cart.length > 1) {
@@ -54,7 +54,11 @@ export const parseCartIntent = async ({ message, cart, history = [] }) => {
 			);
 
 			if (matches.length !== 1) {
-				return { action: 'clarify', productName: null };
+				return {
+					action: 'clarify',
+					productName: null,
+					pendingAction: 'remove',
+				};
 			}
 
 			return {
@@ -83,7 +87,7 @@ export const parseCartIntent = async ({ message, cart, history = [] }) => {
 
 		return selected
 			? { action: 'remove', productName: selected.name }
-			: { action: 'clarify', productName: null };
+			: { action: 'clarify', productName: null, pendingAction: 'remove' };
 	}
 
 	return intentModel.invoke([

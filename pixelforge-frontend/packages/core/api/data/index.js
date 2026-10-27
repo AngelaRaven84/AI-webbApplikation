@@ -26,13 +26,18 @@ export const fetchDocuments = async () => {
 	return data;
 };
 
-export const sendChatMessage = async ({ message, history, cart }) => {
+export const sendChatMessage = async ({
+	message,
+	history,
+	cart,
+	pendingCartAction,
+}) => {
 	const response = await fetch('http://localhost:8080/api/chat', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 		},
-		body: JSON.stringify({ message, history, cart }),
+		body: JSON.stringify({ message, history, cart, pendingCartAction }),
 	});
 
 	if (!response.ok) {
