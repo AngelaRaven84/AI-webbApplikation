@@ -17,8 +17,18 @@ const toolsByName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
 
 const modelWithTools = llm.bindTools(tools);
 
-export const getReply = async ({ message, history = [], cart = [] }) => {
-	const intent = await parseCartIntent({ message, cart, history });
+export const getReply = async ({
+	message,
+	history = [],
+	cart = [],
+	pendingCartAction = null,
+}) => {
+	const intent = await parseCartIntent({
+		message,
+		cart,
+		history,
+		pendingCartAction,
+	});
 
 	console.log('Kundvagnstolkning:', intent);
 

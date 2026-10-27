@@ -4,7 +4,12 @@ import { getReply } from '../ai/getReply.js';
 const router = Router();
 
 router.post('/', async (req, res) => {
-	const { message, history = [], cart = [] } = req.body ?? {};
+	const {
+		message,
+		history = [],
+		cart = [],
+		pendingCartAction = null,
+	} = req.body ?? {};
 
 	const validHistory =
 		Array.isArray(history) &&
@@ -38,6 +43,12 @@ router.post('/', async (req, res) => {
 	if (typeof message !== 'string' || !message.trim() || !validHistory) {
 		return res.status(400).json({
 			error: 'En fråga och giltig historik behövs.',
+		});
+	}
+
+	if (pendingCartAction !== null && pendingCartAction !== 'remove') {
+		return res.status(400).json({
+			error: 'Ogiltig väntande kundvagnsåtgärd',
 		});
 	}
 

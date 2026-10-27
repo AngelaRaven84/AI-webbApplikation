@@ -14,7 +14,23 @@ const actionModel = llm.withStructuredOutput(
 	}),
 );
 
-export const parseCartIntent = async ({ message, cart, history = [] }) => {
+export const parseCartIntent = async ({
+	message,
+	cart,
+	history = [],
+	pendingCartAction = null,
+}) => {
+	if (pendingCartAction === 'remove') {
+		const normalizedMessage = message.trim().toLowerCase();
+
+		const matches = cart.filter(
+			(item) => item.name.trim().toLowerCase() === normalizedMessage,
+		);
+
+		if (matches.length === 1) {
+			return { action: 'remove', productName: matches[0].name };
+		}
+	}
 	const decision = await actionModel.invoke([
 		new SystemMessage(`
             Tolka endast det senaste meddelandet. Utför ingenting.
