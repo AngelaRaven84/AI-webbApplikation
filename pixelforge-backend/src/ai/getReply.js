@@ -11,6 +11,7 @@ import { parseCartIntent } from './parseCartIntent.js';
 import { createRemoveFromCartTool } from '../tools/cart/removeFromCartTool.js';
 import { parseSupportIntent } from './parseSupportIntent.js';
 import { chatPrompt } from './prompts/chatPrompt.js';
+import { formatProducts } from './formatProducts.js';
 
 const tools = [searchProductsTool, searchSupportTool];
 
@@ -138,15 +139,7 @@ export const getReply = async ({
 			ids: products.map((product) => product.id),
 		});
 
-		productContent =
-			products.length === 0
-				? 'Inga produkter matchade sökvillkoren.'
-				: products
-						.map(
-							(product) =>
-								`${product.name}\nMärke: ${product.brand}\nPris: ${product.price} kr\nI lager: ${product.stock} st`,
-						)
-						.join('\n\n');
+		productContent = formatProducts(products);
 
 		if (!supportIntent.needsSupport) {
 			return {
