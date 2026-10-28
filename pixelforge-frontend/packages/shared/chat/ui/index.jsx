@@ -1,6 +1,6 @@
 import { useChat } from '@pixelforge/usechat';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { ChatSources } from '../children/chatsources/index.js';
 import { fetchDocuments } from '@pixelforge/api';
 import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X } from 'lucide-react';
@@ -89,38 +89,12 @@ export const Chat = () => {
 							className={`chat__message chat__message--${message.role}`}>
 							<p className='chat__message-text'>{message.content}</p>
 
-							{message.sources?.length > 0 && (
-								<div className='chat__sources'>
-									<p className='chat__sources-title'>Hämtade underlag:</p>
-
-									{documentsPending && (
-										<p role='status'>Laddar dokumentlänkar...</p>
-									)}
-
-									{documentsError && (
-										<p role='alert'>
-											{' '}
-											Det gick inte att hämta dokumentlänkarna.
-										</p>
-									)}
-
-									<ul className='chat__sources-list'>
-										{documents
-											.filter((document) =>
-												message.sources.includes(document.id),
-											)
-											.map((document) => (
-												<li className='chat__sources-item' key={document.id}>
-													<Link
-														className='chat__source-link'
-														to={`/support/${encodeURIComponent(document.slug)}`}>
-														{document.title}
-													</Link>
-												</li>
-											))}
-									</ul>
-								</div>
-							)}
+							<ChatSources
+								sources={message.sources}
+								documents={documents}
+								isPending={documentsPending}
+								isError={documentsError}
+							/>
 						</div>
 					))}
 				</div>

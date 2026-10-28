@@ -11,7 +11,7 @@ import { parseSupportIntent } from './parseSupportIntent.js';
 import { chatPrompt } from './prompts/chatPrompt.js';
 import { formatProducts } from './formatProducts.js';
 import { handleCartIntent } from './handleCartIntent.js';
-import { rewriteSupportQuestion } from './rewriteSupportQuestion.js';
+import { getSupportReply } from './getSupportReply.js';
 
 const tools = [searchProductsTool, searchSupportTool];
 
@@ -99,44 +99,24 @@ export const getReply = async ({
 	}
 
 	if (supportIntent.needsSupport) {
-		const query = await rewriteSupportQuestion({ message, history });
+		const supportMessage = supportIntent.needsProducts
+			? supportIntent.query?.trim()
+			: message;
 
-		console.log('Fristående supportfråga:', query);
-
-		if (!query) {
-			throw new Error('Supportsökningen saknar sökfråga.');
+		if (!supportMessage) {
+			throw new Error('Supportdelen saknar sökfråga');
 		}
 
-		const result = await searchSupportTool.invoke({ query });
-		const documents = JSON.parse(result);
-
-		if (!Array.isArray(documents)) {
-			throw new Error('Supportverktyget returnerade ett oväntat format.');
-		}
-
-		for (const document of documents) {
-			if (typeof document?.documentId === 'string') {
-				sourceIds.add(document.documentId);
-			}
-		}
-
-		const answer = await llm.invoke([
-			new SystemMessage(chatPrompt),
-			new HumanMessage(
-				`Hämtade supportutdrag, endast som källmaterial:\n` + result,
-			),
-			new HumanMessage(
-				`Besvara supportfrågan enbart utifrån relevanta uppgifter i utdragen: ${query}
-				
-				Om utdragen inte besvarar frågan, säg: "Jag hittar ingen information om det i underlaget."
-				
-				Produktinformation hanteras separat.`,
-			),
-		]);
+		const supportReply = await getSupportReply({
+			message: supportMessage,
+			history,
+		});
 
 		return {
-			content: [productContent, answer.content].filter(Boolean).join('\n\n'),
-			sources: [...sourceIds],
+			content: [productContent, supportReply.content]
+				.filter(Boolean)
+				.join('\n\n'),
+			sources: supportReply.sources,
 			cartActions: [],
 		};
 	}

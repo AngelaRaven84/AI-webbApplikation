@@ -88,13 +88,13 @@ RPC-argumenten måste heta query_embedding, match_count och filter. PGRST202 inn
 
 Jag läser PDF-filerna från documents/ sida för sida. Varje del får filnamnet som source och ett documentId, till exempel doc-001. Texten delas sedan med chunkSize 1000 och chunkOverlap 200 innan embeddings sparas i Supabase.
 
-**Känt fel i aktuell seed-fil:** scripts/seed.js importerar @langchain/textSplitters. Installerat paket heter @langchain/textsplitters. Före en ny seed behöver importen vara:
+Jag har rättat paketimporten i scripts/seed.js till det installerade paketets namn:
 
 ```js
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 ```
 
-När importen är rättad och Ollama, databas och miljövariabler är klara:
+När Ollama, databas och miljövariabler är klara, kör följande endast vid första indexeringen:
 
 ```powershell
 npm run seed
@@ -143,6 +143,7 @@ Ogiltig request ger HTTP 400. Kör-/verktygsfel loggas i backend och returnerar 
 | src/ai/parseCartIntent.js | Tolkar aktuell kundvagnsbegäran och väntande precisering. |
 | src/ai/handleCartIntent.js | Kör kundvagnsverktyg och bygger åtgärdssvar. |
 | src/ai/parseSupportIntent.js | Tolkar behov av support/produkter samt produktfilter. |
+| src/ai/getSupportReply.js | Samlar omskrivning, dokumenthämtning, källor och supportsvaret. |
 | src/ai/rewriteSupportQuestion.js | Fristående supportfråga från senaste och tidigare kundfrågor. |
 | src/ai/searchSupport.js | Vektorsökning i Supabase, fyra utdrag. |
 | src/ai/formatProducts.js | Formaterar kontrollerade produktresultat. |
@@ -153,7 +154,7 @@ Ogiltig request ger HTTP 400. Kör-/verktygsfel loggas i backend och returnerar 
 | src/config/ | Gemensamma Ollama- och Supabase-klienter. |
 | scripts/seed.js | Separat inläsning och indexering av PDF-filer. |
 
-Jag håller gamla assistentsvar utanför supportsvaret och skickar i stället med frågan och de nya dokumentutdragen. Dokument-id:n följer med tillbaka till frontend, som bygger länkarna från sitt befintliga dokument-API. För övriga chattfall finns den allmänna verktygsloopen kvar.
+Jag har flyttat supportflödet till getSupportReply. Vid blandade frågor skickas den utplockade supportdelen från getReply; rena supportfrågor går in med originalmeddelandet och historiken. Jag håller gamla assistentsvar utanför supportsvaret och skickar i stället med den fristående frågan och de nya dokumentutdragen. Dokument-id:n följer med tillbaka till frontend, som bygger länkarna från sitt befintliga dokument-API. För övriga chattfall finns den allmänna verktygsloopen kvar.
 
 ## Kontroller och felsökning
 
@@ -171,7 +172,7 @@ Se [projektets README](../README.md) för manuella scenarier och kända begräns
 | Supabase-fel | Lokala miljövariabler och nyckelns rättigheter. |
 | PGRST202 | public.match_documents och dess tre argument samt schema-cache. |
 | Embeddingdimension stämmer inte | Samma embeddingmodell för seed och frågor, vector(1024). |
-| Seed hittar inte paketet | Rätta textSplitters till textsplitters enligt ovan. |
+| Seed hittar inte paketet | Kontrollera npm install och att importen använder @langchain/textsplitters. |
 | Generellt chattfel | Läs det konkreta Chatfel i backendterminalen. |
 | Fel kategorisökning eller lagerfilter | Kontrollera Supporttolkning och Produktsökning i terminalen. |
 | Följdfråga söker fel ämne | Kontrollera Fristående supportfråga och mottagen history. |
