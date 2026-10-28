@@ -1,6 +1,6 @@
 # PixelForge – Backend
 
-Node.js/Express-backend med LangChain.js, lokal Ollama och Supabase-RAG. POST /api/chat är implementerad för produktfrågor, supportfrågor, historik och kundvagnsåtgärder.
+Här ligger backend till min PixelForge-assistent. Jag har byggt den med Node.js, Express och LangChain.js och använder Ollama för språkmodellen och Supabase för RAG. Frontend skickar frågor till POST /api/chat, där produktfrågor, supportfrågor och kundvagnsåtgärder hanteras.
 
 ## Installation och miljövariabler
 
@@ -20,7 +20,7 @@ OLLAMA_EMBEDDING_MODEL=qwen3-embedding:0.6b
 PORT=8080
 ```
 
-Värdena ovan är platshållare respektive modellnamn, inte riktiga nycklar. Konfigurationen läser dessa fem variabler. Supabase-nyckeln ska ha behörighet att söka och vid seed skriva dokument; den ska enbart finnas i backend. Backendens .gitignore ignorerar .env och node_modules.
+Det här är exempelvärden. Lägg in din egen Supabase-URL och nyckel lokalt. Jag håller nyckeln i backendens .env, som är ignorerad i .gitignore tillsammans med node_modules. Nyckeln behöver kunna söka dokument och även skriva dem när seed körs.
 
 Ladda ner projektets modeller:
 
@@ -30,13 +30,13 @@ ollama pull qwen3-embedding:0.6b
 ollama list
 ```
 
-Starta Ollama med ollama serve om tjänsten inte redan körs. Lokal adress är http://localhost:11434. Chattmodellen använder temperature 0.2. Embeddingmodellen har verifierats ge 1024 dimensioner; använd samma modell vid indexering och sökning.
+Jag använder Ollamas lokala adress http://localhost:11434 och temperature 0.2 för chattmodellen. Starta med ollama serve om Ollama inte redan körs. Embeddingmodellen ger 1024 dimensioner och behöver vara samma när dokumenten läses in och när frågor söks.
 
 ## Supabase – första installationen
 
-Projektet använder public.documents och RPC-funktionen public.match_documents. Tabellen har content (text), metadata (jsonb), embedding (vektor med 1024 dimensioner) samt ett unikt id.
+Jag lagrar dokumentutdragen i public.documents och söker med funktionen public.match_documents. Varje rad har ett id, texten i content, metadata och en embedding med 1024 dimensioner.
 
-Följande är ett SQL-exempel för ett nytt projekt med pgvector i schemat extensions. Det är inte en migrering av en befintlig databas och har inte körts om i detta dokumentationspass. Ändra inte en befintlig tabell med andra dimensioner utan att planera omindexering.
+SQL-exemplet nedan är till för en tom databas, med pgvector i schemat extensions. Jag har inte testat om en helt ny installation med just det här exemplet. Om en databas redan finns behöver tabell, dimensioner och rättigheter kontrolleras innan något ändras.
 
 ```sql
 create extension if not exists vector with schema extensions;
@@ -86,7 +86,7 @@ RPC-argumenten måste heta query_embedding, match_count och filter. PGRST202 inn
 
 ## Indexera dokument en gång
 
-PDF-filerna finns i documents/. Seed läser dem sidvis och sparar metadata med source (filnamn) och documentId (prefix som doc-001). Texten delas med chunkSize 1000 och chunkOverlap 200 och embeddings lagras i Supabase.
+Jag läser PDF-filerna från documents/ sida för sida. Varje del får filnamnet som source och ett documentId, till exempel doc-001. Texten delas sedan med chunkSize 1000 och chunkOverlap 200 innan embeddings sparas i Supabase.
 
 **Känt fel i aktuell seed-fil:** scripts/seed.js importerar @langchain/textSplitters. Installerat paket heter @langchain/textsplitters. Före en ny seed behöver importen vara:
 
@@ -100,9 +100,9 @@ När importen är rättad och Ollama, databas och miljövariabler är klara:
 npm run seed
 ```
 
-Den tidigare manuella inläsningen gav 20 PDF-filer, 54 dokumentdelar och 161 chunks. Dokument har lagrats och sökts i projektets databas, men en helt ny installation har inte återtestats efter dokumentationsuppdateringen.
+När jag provade inläsningen fick jag 54 dokumentdelar och 161 chunks från de 20 PDF-filerna. Dokumenten finns i min Supabase-databas och sökningen fungerar där. Jag har däremot inte gjort om hela installationen från början efter de senaste ändringarna.
 
-Seed lägger till rader och rensar inte tidigare data. Kör det inte vid varje start eller mot en redan fylld tabell utan en medveten plan för dubbletter. Byte av embeddingmodell kräver att lagrade dokument och frågor åter använder samma modell/dimension.
+Seed lägger till dokument utan att rensa gamla rader. Jag kör därför inte seed vid vanlig appstart, eftersom det kan skapa dubbletter. Om embeddingmodellen byts behöver dokumenten läsas in på nytt med rätt modell och dimension.
 
 ## Starta backend
 
@@ -129,11 +129,11 @@ history innehåller objekt med role (user/assistant) och content. cart innehåll
 
 Svaret har content, sources (dokument-id:n) och cartActions. Vid väntande borttagningsprecisering finns även pendingCartAction: remove. Frontend tolkar ett saknat fält som null.
 
-cartActions kan innehålla add_to_cart med ett kontrollerat produktobjekt eller remove_from_cart med productId och namn. Backend förbereder åtgärder; frontend utför dem i befintlig Zustand-store. Ett förberett svar är inte en serverlagrad kundvagn.
+cartActions kan innehålla add_to_cart med ett kontrollerat produktobjekt eller remove_from_cart med productId och namn. Jag låter backend förbereda åtgärden och frontend utföra den i webbshoppens befintliga Zustand-store. Kundvagnen lagras alltså inte på servern.
 
 Ogiltig request ger HTTP 400. Kör-/verktygsfel loggas i backend och returnerar ett generellt HTTP 500-svar. Frontend kan skicka en ny fråga när anropet är klart.
 
-## Filansvar
+## Så har jag delat upp koden
 
 | Fil eller mapp | Ansvar |
 | --- | --- |
@@ -153,11 +153,11 @@ Ogiltig request ger HTTP 400. Kör-/verktygsfel loggas i backend och returnerar 
 | src/config/ | Gemensamma Ollama- och Supabase-klienter. |
 | scripts/seed.js | Separat inläsning och indexering av PDF-filer. |
 
-Supportsvaret får frågan och de aktuella dokumentutdragen utan tidigare assistentsvar. Dokument-id:n samlas från hämtningen och länkas i frontend via dess dokument-API. En allmän modell-/verktygsloop finns också kvar för övriga chattfall.
+Jag håller gamla assistentsvar utanför supportsvaret och skickar i stället med frågan och de nya dokumentutdragen. Dokument-id:n följer med tillbaka till frontend, som bygger länkarna från sitt befintliga dokument-API. För övriga chattfall finns den allmänna verktygsloopen kvar.
 
 ## Kontroller och felsökning
 
-Backendens npm test är ett placeholder-script och utgör ingen fungerande automatisk testsvit. För en snabb syntaxkontroll:
+Jag har främst testat flödena manuellt genom webbchatten. npm test är fortfarande ett placeholder-script från startkoden och innehåller inga riktiga tester. En snabb syntaxkontroll kan köras så här:
 
 ```powershell
 node --check src/ai/getReply.js
@@ -176,4 +176,4 @@ Se [projektets README](../README.md) för manuella scenarier och kända begräns
 | Fel kategorisökning eller lagerfilter | Kontrollera Supporttolkning och Produktsökning i terminalen. |
 | Följdfråga söker fel ämne | Kontrollera Fristående supportfråga och mottagen history. |
 
-Verktyg och modeller ska inte få hemliga miljövärden i meddelanden eller publika loggar.
+Jag skickar inte hemliga miljövärden till modellen och skriver inte ut dem i publika loggar.

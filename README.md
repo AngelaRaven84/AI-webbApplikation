@@ -1,135 +1,120 @@
 # PixelForge AI-assistent
 
-En AI-assistent integrerad i PixelForges befintliga React-webbshop. Assistenten söker produkter i kursens produkt-API, besvarar supportfrågor med Supabase-RAG och kan lägga till och ta bort ett exemplar åt gången i den befintliga kundvagnen.
+Det här är mitt examinationsprojekt i kursen Utveckling av AI-drivna applikationer. Jag har byggt vidare på PixelForges befintliga webbshop och lagt till en AI-assistent som hjälper kunden att hitta produkter, få svar på supportfrågor och hantera sin kundvagn.
 
-## Starta lokalt
+Jag började med en enkel chatt i frontend och kopplade sedan på backend, produktverktyg och RAG. Därefter byggde jag vidare med dokumentlänkar och möjligheten att lägga till och ta bort produkter genom chatten. Planering och anteckningar från arbetet finns i [STATUS.md](STATUS.md). Där har jag också sparat examinationsuppgiften.
 
-Du behöver Node.js/npm (projektet har körts med Node.js 24), Ollama och ett Supabase-projekt. Internetanslutning behövs för Supabase och kursens produkt-/dokument-API.
+## Vad chatten kan göra
 
-1. Installera och konfigurera backend enligt [backendens guide](pixelforge-backend/README-backend.md), inklusive modeller, lokala miljövariabler och databas. Dokumenten behöver indexeras en gång i en tom databas.
-2. Starta Ollama om det inte redan körs:
+- Söka efter produkter utifrån namn, märke, kategori, pris och lagerstatus.
+- Svara på frågor om till exempel frakt, returer och betalning med hjälp av butikens supportdokument.
+- Förstå följdfrågor utifrån samtalet.
+- Lägga till och ta bort ett exemplar åt gången i webbshoppens kundvagn.
+- Be om ett förtydligande när det är oklart vilken produkt som ska tas bort.
+- Visa länkar till de hämtade supportdokumentens sidor i webbshoppen.
 
-   ```powershell
-   ollama serve
-   ```
+Det går också att fråga om både produkter och support i samma meddelande.
 
-3. Starta backend i en egen terminal från projektets rot:
+## Tekniker jag har använt
 
-   ```powershell
-   cd pixelforge-backend
-   npm install
-   npm run dev
-   ```
+Frontend är byggd med React och Vite. Jag använder TanStack Query för anrop, React Router för navigering och den befintliga Zustand-storen för kundvagnen.
 
-4. Starta frontend i en annan terminal från projektets rot:
+I backend använder jag Node.js, Express och LangChain.js. Språkmodellen körs lokalt med Ollama och supportdokumentens embeddings lagras i Supabase.
 
-   ```powershell
-   cd pixelforge-frontend
-   npm install
-   npm run dev
-   ```
+Jag har använt modellerna:
 
-Öppna adressen som Vite visar, normalt http://localhost:5173. Frontend anropar http://localhost:8080/api/chat. Om backendporten ändras behöver även frontendens API-adress ändras.
+- `qwen3:4b-instruct` för chatten och tolkning av frågor.
+- `qwen3-embedding:0.6b` för embeddings, med 1024 dimensioner.
 
-[Frontendens guide](pixelforge-frontend/README.md) beskriver workspaces, komponentstruktur och webbshoppen.
+## Starta projektet
 
-## Lösningens ansvar och dataflöde
+För att köra projektet behövs Node.js och npm, Ollama och ett Supabase-projekt. Jag har arbetat med Node.js 24. Internetanslutning behövs för Supabase och produkt- och dokument-API:erna.
 
-- **Frontend:** Chat visar meddelanden och dokumentlänkar. useChat håller historik och väntande precisering i React-state, skickar aktuell kundvagn och utför returnerade cartActions via den befintliga Zustand-storen.
-- **Backend:** Express validerar anropet. getReply använder strukturerad modellbaserad tolkning för att styra kundvagn, produkt- och supportflöden. Modellval är inte en garanti för korrekt avsikt.
-- **Produkter:** searchProductsTool hämtar produkt-API:et och filtrerar namn/märke/kategori, maxpris och lager. Svenska kategorialias hanteras i kod och formatProducts bygger produkttexten från resultatet.
-- **Support/RAG:** rewriteSupportQuestion gör en fristående fråga utifrån senaste meddelandet och tidigare kundfrågor. Samma embeddingmodell används för dokument och frågor. Supabase match_documents hämtar fyra utdrag; supportsvaret genereras från frågan och dessa utdrag utan gamla assistentsvar.
-- **Blandade frågor:** produkt- och supportunderlag hämtas i samma request och svarstexterna kombineras.
-- **Kundvagn:** parseCartIntent tolkar begäran, handleCartIntent anropar befintliga verktyg som kontrollerar produktnamn mot API eller aktuell cart. Frontend utför åtgärden vid lyckat svar.
-- **Dokumentlänkar:** source-id:n från hämtningen kopplas till id/title/slug i frontendens befintliga dokument-API. React Router öppnar /support/:slug i samma flik med chatten kvar.
+Börja med [backendens README](pixelforge-backend/README-backend.md). Där beskriver jag miljövariablerna, modellerna och hur databasen förbereds. Vid en ny installation behöver dokumenten läsas in en gång innan supportfrågorna fungerar.
 
-Frontend följer startkodens base/shared/pages/core-struktur med namngivna npm-workspaces. Backend skiljer konfiguration, route, tolkning, prompt, formatering och tools åt.
+Starta Ollama om det inte redan körs:
 
-## Exempel att prova
+```powershell
+ollama serve
+```
+
+Öppna en terminal i projektets rot och starta backend:
+
+```powershell
+cd pixelforge-backend
+npm install
+npm run dev
+```
+
+Öppna sedan en ny terminal i projektets rot och starta frontend:
+
+```powershell
+cd pixelforge-frontend
+npm install
+npm run dev
+```
+
+Öppna adressen som Vite visar, vanligtvis http://localhost:5173. Backend körs på http://localhost:8080 och chatten anropar `POST /api/chat`.
+
+Om backendporten ändras behöver adressen i frontendens API-funktion också ändras. Mer information om frontendens befintliga paketstruktur finns i [frontendens README](pixelforge-frontend/README.md).
+
+## Hur jag har byggt lösningen
+
+Jag har behållit startkodens struktur med `base`, `shared`, `pages` och `core`. Chattkomponenten ligger i shared, medan hooken, API-anropen och kundvagnens state ligger i core.
+
+När kunden skickar ett meddelande skickar frontend även tidigare meddelanden, aktuell kundvagn och eventuell väntande precisering till backend. Där tolkas vad kunden vill göra innan rätt funktion anropas.
+
+### Produkter
+
+Produktverktyget hämtar riktiga produkter från kursens API. Filtreringen görs i JavaScript och produkttexten byggs från resultatet, så modellen inte själv behöver hitta på namn, priser eller lagerantal. Jag har också lagt till svenska kategoriord, till exempel att ”möss” matchas mot API:ets kategori Mice.
+
+### Support och RAG
+
+Jag läser in supportdokumenten från PDF-filer, delar upp texten i chunks och lagrar embeddings i Supabase. Vid en supportfråga skrivs frågan först om så att den går att förstå utan resten av samtalet. Sedan hämtas fyra dokumentutdrag genom vektorsökning.
+
+Supportsvaret får den fristående frågan och dokumentutdragen. Jag skickar inte med gamla assistentsvar i det steget, eftersom felaktiga tidigare svar annars kan följa med och upprepas.
+
+Dokumentens id:n skickas tillbaka separat från svarstexten. Frontend kopplar dem till rätt titel och slug och visar länkar till dokumentens egna supportsidor.
+
+### Kundvagnen
+
+Jag har separerat tolkningen av kundens önskemål från själva kundvagnsåtgärden. Verktygen kontrollerar produktnamnet mot produkt-API:et eller aktuell kundvagn och förbereder en åtgärd med rätt produkt-id. När svaret kommer tillbaka utför frontend åtgärden i den befintliga storen.
+
+Vid en otydlig borttagning sparas en väntande åtgärd. Kunden kan då svara med produktnamnet eller avbryta utan att något tas bort.
+
+## Exempel att testa
 
 - ”Hitta tangentbord under 1500 kronor som finns i lager.” → ”Och möss under 800 kronor?”
 - ”Lägg till den musen i kundvagnen.” → ”Lägg till en till av samma.”
 - ”Vad ligger i min kundvagn?” → ”Ta bort en av mössen.” → ”Ta bort den sista också.”
-- Med två olika produkter: ”Ta bort en av produkterna.” → exakt produktnamn, eller ”Nej, ta inte bort något.”
+- Med två olika produkter: ”Ta bort en av produkterna.” → exakt produktnamn eller ”Nej, ta inte bort något.”
 - ”Vad kostar standardfrakten inom Sverige och när blir den gratis?”
 - ”Vem betalar returfrakten när jag returnerar en vara?” → ”Gäller det även om varan är trasig?”
 - ”Erbjuder PixelForge livstids fri frakt för studenter?”
 
-## Kontroller och kända begränsningar
+## Tester och sådant som finns kvar
 
-Centrala produkt-, support-, kundvagns- och dokumentlänksflöden har manuellt provats under utvecklingen. Frontendens lint och build passerade enligt Saras test 28 oktober 2026; Vite varnade för en chunk större än 500 kB. Återhämtning efter avstängd/återstartad backend fungerade utan sidomladdning. Se [STATUS.md](STATUS.md) för daterade kontroller och pauslägen.
+Jag har testat produktfrågor, supportfrågor, följdfrågor, blandade frågor, dokumentlänkar och kundvagnens tillägg, borttagning och avbrytande. Jag har även testat att stoppa backend och starta den igen. Chatten fungerar då igen utan att sidan behöver laddas om.
 
-Kör från frontend-mappen:
+Den 28 oktober gick frontendens lint och build igenom. Vite visar en varning om en chunk större än 500 kB, men bygget slutförs.
+
+Kör kontrollerna från frontend-mappen:
 
 ```powershell
 npm run lint
 npm run build
 ```
 
-- Backendens npm test är fortfarande ett placeholder-script, inte en automatisk testsvit.
-- Svar och tolkningar kan vara felaktiga. Supporttext kan förenkla villkor eller ha språkfel; läs de länkade dokumenten för fullständiga villkor.
-- ”Hämtade underlag” visar alla hämtade dokument, även mindre relevanta träffar. Listan bevisar inte att varje dokument stöder svaret.
-- Historik och kundvagn lagras i minnet och återställs vid omladdning/ny flik.
-- Kundvagnsåtgärder gäller ett exemplar per request. Flera produktrader kräver i vissa borttagningsfall exakt produktnamn; väntande precisering finns för borttagning.
-- Lagerkontrollen säkerställer stock > 0 men räknar inte av redan valda exemplar. Full kvantitetshantering och idempotensskydd är inte implementerade.
-- Förväntade verktygsfel kan visas som ett generellt chattfel.
-- UI/design är vid denna uppdatering fortfarande under arbete.
-- Seed-scriptets paketimport behöver rättas före ny indexering; se backendguiden. Kör inte seed mot befintliga dokument bara för att testa starten.
+Det finns fortfarande begränsningar som jag vill vara tydlig med:
 
-## Examinationsunderlag
+- AI:n kan misstolka frågor, förenkla villkor eller uttrycka sig konstigt. Dokumentlänkarna gör att kunden kan läsa de fullständiga villkoren.
+- Länklistan visar alla hämtade underlag, även när någon träff är mindre relevant.
+- Historik och kundvagn ligger i minnet och försvinner vid omladdning eller i en ny flik.
+- Kundvagnsåtgärderna gäller ett exemplar åt gången. Vid vissa borttagningar med flera produkter behövs hela produktnamnet.
+- Lagerkontrollen tar inte hänsyn till hur många exemplar som redan ligger i kundvagnen. Jag har inte byggt generellt skydd mot upprepade åtgärder.
+- Vissa verktygsfel visas fortfarande som ett generellt chattfel.
+- Backendens `npm test` är kvar från startkoden och innehåller ingen fungerande testsvit.
+- Chattens design är fortfarande under arbete.
+- Innan en ny seed behöver paketimporten i seed-scriptet rättas enligt backendens README. Befintliga dokument ska inte läsas in igen bara för att starta appen.
 
-Ursprungliga krav och inlämningsinstruktioner följer nedan. De är kravunderlag, inte en deklaration om slutligt betyg.
-
----
-
-
-# Examination – PixelForge AI-assistent
-
-## Projektbeskrivning
-
-PixelForge är en e-handelsplattform för teknikprodukter som vill förbättra sin kundservice med hjälp av en AI-driven chatbot. Du har fått en befintlig frontend och en förberedd backend som utgångspunkt. Din uppgift är att utveckla och integrera en chatbot som hjälper kunder att hitta produkter och få svar på frågor om butikens villkor och support.
-
-**Syftet** är att tillämpa kursens tekniker i en fungerande fullstackapplikation. **Målet** är en chatbot som kan använda både butikens dokumentation och aktuell produktinformation för att ge relevanta svar samt förstå följdfrågor.
-
-## Kravspecifikation
-
-Chatbotten ska:
-
-- Vara integrerad i PixelForges befintliga frontend och kommunicera med en språkmodell.
-- Kunna besvara frågor om exempelvis leverans, retur och reklamation utifrån de tillhandahållna supportdokumenten.
-- Kunna söka fram och ge information om produkter, exempelvis pris, kategori och lagerstatus.
-- Hantera konversationshistorik så att användaren kan ställa följdfrågor.
-- Använda **RAG** för supportdokument och **tools** för produktinformation. Du väljer själv hur dessa tekniker kombineras; någon särskild orkestreringslösning krävs inte.
-
-## Teknik och projektstruktur
-
-Utgå från de tillhandahållna projekten:
-
-- [pixelforge-frontend](./pixelforge-frontend/README.md) – installation, komponenter, package-arkitektur och frontendens funktioner.
-- [pixelforge-backend](./pixelforge-backend/README-backend.md) – installation, miljövariabler, Ollama, Supabase och seed-script.
-
-Använd **React**, **Node.js/Express**, **LangChain.js**, **Ollama**, **Supabase** och kursens tekniker för **RAG och tools**.
-
-Du får själv välja om du bygger chatbotens AI-logik i frontend eller backend, men **backend rekommenderas**. All kommunikation med Supabase som kräver hemliga nycklar ska ske i backend. Lägg aldrig Supabase-nycklar eller andra hemligheter i frontendkod eller i ett publikt GitHub-repository.
-
-## Betygskriterier
-
-### Godkänt (G)
-
-För G ska samtliga krav i kravspecifikationen vara uppfyllda. Chatbotten ska fungera i den befintliga applikationen och använda både RAG och tools för sina respektive uppgifter. Den ska också kunna förstå och besvara relevanta följdfrågor.
-
-### Väl godkänt (VG)
-
-För VG ska samtliga G-krav vara uppfyllda. Dessutom ska:
-
-- **Kundvagnen kunna hanteras via chatbotten:** Användaren ska kunna lägga till och ta bort produkter med naturligt språk, även genom följdfrågor. Ändringarna ska synas i webbshoppens kundvagn.
-- **Relevanta dokument länkas i chatten:** När chatbotten besvarar en fråga med hjälp av ett supportdokument ska användaren kunna öppna dokumentets egen sida i PixelForge via en klickbar länk.
-- **Koden vara skalbar och modulär:** Lösningen ska följa de arkitektoniska principerna i den tillhandahållna koden på ett genomtänkt sätt, med tydlig ansvarsfördelning och återanvändbara delar.
-
-## Inlämning och examination
-
-**Deadline: 29 oktober 2026 kl. 23:59.**
-
-Lämna in en länk till ditt GitHub-repository enligt instruktionerna på kursplattformen. Se till att projektet innehåller en README med information om hur lösningen installeras och startas samt vilka miljövariabler som behöver konfigureras. Lämna inte in hemliga nycklar eller `.env`-filer.
-
-**Examinerande Code Review: 30 oktober 2026.** Schema publiceras senare. Du ska kunna demonstrera chatbotten och förklara hur du har implementerat RAG, tools, konversationshistorik och eventuell VG-funktionalitet.
+Mer detaljerade testresultat och nästa steg finns i [STATUS.md](STATUS.md).
