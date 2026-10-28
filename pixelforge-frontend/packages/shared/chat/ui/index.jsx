@@ -2,6 +2,7 @@ import { useChat } from '@pixelforge/usechat';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchDocuments } from '@pixelforge/api';
+import './style.css';
 
 export const Chat = () => {
 	const { messages, sendMessage, isPending, error } = useChat();
@@ -27,9 +28,14 @@ export const Chat = () => {
 	};
 
 	return (
-		<section aria-label='PixelForge-assistent'>
-			<h2>PixelForge-assistent</h2>
-			<p>Hej! Vad kan jag hjälpa dig med?</p>
+		<section className='chat' aria-labelledby='chat-title'>
+			<header className='chat__header'>
+				<h2 className='chat__title' id='chat__title'>
+					PixelForge-assistent
+				</h2>
+				<p className='chat__intro'>Hej! Vad kan jag hjälpa dig med?</p>
+			</header>
+
 			<div aria-live='polite'>
 				{messages.map((message) => (
 					<div key={message.id}>
