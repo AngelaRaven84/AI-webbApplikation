@@ -2,12 +2,13 @@ import { useChat } from '@pixelforge/usechat';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchDocuments } from '@pixelforge/api';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import './style.css';
 
 export const Chat = () => {
 	const [isOpen, setIsOpen] = useState(false);
+	const messagesRef = useRef(null);
 	const { messages, sendMessage, isPending, error } = useChat();
 
 	const {
@@ -19,6 +20,16 @@ export const Chat = () => {
 		queryFn: fetchDocuments,
 		enabled: messages.some((message) => message.sources?.length > 0),
 	});
+
+	useEffect(() => {
+		if (!isOpen) return;
+
+		const container = messagesRef.current;
+
+		if (container) {
+			container.scrollTop = container.scrollHeight;
+		}
+	}, [messages, isOpen, isPending, error, documentsPending, documentsError]);
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
@@ -64,7 +75,7 @@ export const Chat = () => {
 					</button>
 				</header>
 
-				<div className='chat__messages' aria-live='polite'>
+				<div className='chat__messages' ref={messagesRef} aria-live='polite'>
 					{messages.map((message) => (
 						<div
 							key={message.id}
