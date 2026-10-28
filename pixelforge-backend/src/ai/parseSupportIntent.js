@@ -14,7 +14,7 @@ const supportModel = llm.withStructuredOutput(
 );
 
 export const parseSupportIntent = async ({ message, history = [] }) => {
-	return supportModel.invoke([
+	const intent = await supportModel.invoke([
 		new SystemMessage(`
             Avgör vilka uppgifter som behöver hämtas för senaste frågan. Besvara inte frågan.
             
@@ -34,13 +34,20 @@ export const parseSupportIntent = async ({ message, history = [] }) => {
             "Vad ligger i min kundvagn?"
             needsSupport: false, query: null,
             needsProducts: false, productQuery: null,
-            maxPrice: null, inStockOnly; false
+            maxPrice: null, inStockOnly: false
             
             PRODUKTER
             needsProducts: true för sortiment, produktrekommendationer, produktpriser och lagerstatus.
             productQuery: sökord för produktnamn, märke eller kategori, annars null.
             maxPrice: Kundens högsta pris i kronor, annars null.
-            inStockOnly: true om kunden uttryckligen efterfrågar produkter i lager, annars false.
+            inStockOnly: true om kunden efterfrågar produkter i lager. Vid följdfrågor behåll tidigare lagerkrav om kunden inte ändrar det. Senaste uttryckliga prisgräns och kategori ersätter tidigare värden.
+
+            Exempel:
+            Tidigare: "Hitta tangentbord under 1500 kronor som finns i lager."
+            Senaste: "Och möss under 800 kronor?"
+            needsProducts: true, productQuery: "Mice",
+            maxPrice: 800, inStockOnly: true
+
             Söktexten ska inte innehålla pris- eller lagerkrav; de anges i de separata fälten.
             Använd engelska kategorinamn: Headsets, Keyboards, Mice, Monitors.
             Använd historiken bara för att förstå hänvisningar.
@@ -64,4 +71,16 @@ export const parseSupportIntent = async ({ message, history = [] }) => {
 		),
 		new HumanMessage(message),
 	]);
+
+	const explicitStockRequirement =
+		/\bsom finns i lager\b/i.test(message) &&
+		!/\b(?:inte|oavsett)\b/i.test(message);
+
+	return {
+		...intent,
+		inStockOnly:
+			intent.needsProducts && explicitStockRequirement
+				? true
+				: intent.inStockOnly,
+	};
 };
