@@ -6,12 +6,11 @@ import {
 import { llm } from '../config/ollama.config.js';
 import { searchProductsTool } from '../tools/products/searchProductsTool.js';
 import { searchSupportTool } from '../tools/support/searchSupportTool.js';
-import { addToCartTool } from '../tools/cart/addToCartTool.js';
 import { parseCartIntent } from './parseCartIntent.js';
-import { createRemoveFromCartTool } from '../tools/cart/removeFromCartTool.js';
 import { parseSupportIntent } from './parseSupportIntent.js';
 import { chatPrompt } from './prompts/chatPrompt.js';
 import { formatProducts } from './formatProducts.js';
+import { handleCartIntent } from './handleCartIntent.js';
 
 const tools = [searchProductsTool, searchSupportTool];
 
@@ -34,62 +33,10 @@ export const getReply = async ({
 
 	console.log('Kundvagnstolkning:', intent);
 
-	if (
-		intent.action === 'clarify' ||
-		(['add', 'remove'].includes(intent.action) && !intent.productName?.trim())
-	) {
-		return {
-			content: 'Vilken produkt menar du?',
-			sources: [],
-			cartActions: [],
-			pendingCartAction: intent.pendingAction ?? null,
-		};
-	}
+	const cartReply = await handleCartIntent({ intent, cart });
 
-	if (intent.action === 'add') {
-		const result = await addToCartTool.invoke({
-			productName: intent.productName,
-		});
-
-		const prepared = JSON.parse(result);
-
-		if (
-			prepared.status !== 'prepared' ||
-			prepared.action?.type !== 'add_to_cart' ||
-			typeof prepared.action.product?.id !== 'string'
-		) {
-			throw new Error('Ogiltig kundvagnsåtgärd.');
-		}
-
-		return {
-			content: `Förberett ett exemplar av ${prepared.action.product.name} för tillägg i kundvagnen.`,
-			sources: [],
-			cartActions: [prepared.action],
-		};
-	}
-
-	if (intent.action === 'remove') {
-		const removeTool = createRemoveFromCartTool(cart);
-
-		const result = await removeTool.invoke({
-			productName: intent.productName,
-		});
-
-		const prepared = JSON.parse(result);
-
-		if (
-			prepared.status !== 'prepared' ||
-			prepared.action?.type !== 'remove_from_cart' ||
-			typeof prepared.action.productId !== 'string'
-		) {
-			throw new Error('Ogiltig borttagningsåtgärd.');
-		}
-
-		return {
-			content: `Förberett borttagning av ett exemplar av ${prepared.action.name} från kundvagnen.`,
-			sources: [],
-			cartActions: [prepared.action],
-		};
+	if (cartReply !== null) {
+		return cartReply;
 	}
 
 	const sourceIds = new Set();

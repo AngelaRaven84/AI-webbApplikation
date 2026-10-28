@@ -57,6 +57,7 @@ router.post('/', async (req, res) => {
 			message: message.trim(),
 			history,
 			cart,
+			pendingCartAction,
 		});
 
 		return res.json(reply);
