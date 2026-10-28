@@ -9,6 +9,7 @@ import './style.css';
 export const Chat = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const messagesRef = useRef(null);
+	const inputRef = useRef(null);
 	const { messages, sendMessage, isPending, error } = useChat();
 
 	const {
@@ -30,6 +31,12 @@ export const Chat = () => {
 			container.scrollTop = container.scrollHeight;
 		}
 	}, [messages, isOpen, isPending, error, documentsPending, documentsError]);
+
+	useEffect(() => {
+		if (isOpen && !isPending) {
+			inputRef.current?.focus({ preventScroll: true });
+		}
+	}, [isOpen, isPending]);
 
 	const handleSubmit = (event) => {
 		event.preventDefault();
@@ -139,6 +146,7 @@ export const Chat = () => {
 						<input
 							className='chat__input'
 							id='chat-message'
+							ref={inputRef}
 							name='message'
 							type='text'
 							placeholder='Vad letar du efter?'
