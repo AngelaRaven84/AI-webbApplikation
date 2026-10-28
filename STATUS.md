@@ -1,21 +1,22 @@
 # PixelForge AI-assistent – status och plan
 
-Senast uppdaterad: **27 oktober 2026**.
+Senast uppdaterad: **28 oktober 2026**.
 
 Det här är vår gemensamma plats för beslut, tankar, verifierad status och nästa steg. Bocka bara av arbete som faktiskt är gjort och ange vad som har testats. Planering är inte färdig funktionalitet.
 
-## Nuläge – 27 oktober
+## Nuläge – 28 oktober
 
-- Frontend, Express, Ollama, produktverktyg och Supabase-RAG är inkopplade. Modeller: qwen3:4b-instruct och qwen3-embedding:0.6b (1024 dimensioner).
-- Kundvagnen kan nu både utökas och minskas genom chatten och relevanta följdfrågor. Sara har verifierat synliga ändringar, inklusive 2 → 1 → 0.
-- Otydlig borttagning mellan flera produkter ber om precisering. pendingCartAction förs frontend → route → getReply → parseCartIntent; ett exakt produktnamn kan slutföra den väntande borttagningen.
-- Avbrytande lämnar kundvagnen oförändrad och rensar väntande åtgärd inför nästa anrop, verifierat av Sara.
-- Produktfrågor hämtar nu kontrollerade API-resultat och formateras i kod. Supportfrågor hämtar dokument innan svar genereras. Blandade frågor kör båda delarna; tangentbord + frakt har provats med rätt produkt, pris, lager och länkar.
-- Känd brist: modellen skrev fortfarande ”över 1 500” i fraktsvaret där underlaget säger ”1 500 kr eller mer”. Direkt följdfråga om exakt 1 500 kr gav rätt svar (ja); formuleringen är inte löst.
-- Dokumentlänkar fungerar enligt Saras klicktest. Alla hämtade underlag visas; strikt urval av bara relevanta/använda källor återstår.
-- Agenten körde frontend-ESLint med godkänt resultat under dagens kravgranskning och syntaxkontroll av slutlig getReply.js med godkänt resultat. Ingen ny produktionsbuild eller fullständig G/VG-regression kördes idag.
-- Uppdelning av prompt/ansvar, samlad G/VG-kontroll, dokumentationsöversyn och enkel design återstår. VG är inte slutligt avbockat som helhet.
-- Sara pausar till 28 oktober. Endast STATUS.md uppdateras vid pausen; ingen implementation, commit, push eller boardändring görs.
+- Jag har gått igenom centrala G- och VG-scenarier i webbchatten: produktfilter, produktföljdfrågor, inga träffar, support, supportföljdfrågor, saknat underlag, blandade frågor, dokumentlänkar och synliga kundvagnsåtgärder.
+- Kundvagnens tillägg, ”en till”, borttagning 2 → 1 → 0, innehållsfråga utan ändring, otydligt val, precisering och avbrytande är manuellt testade. Väntande remove rensas efter avbrytande.
+- Chatten har nu en mörk panel med lila accent, öppna/stänga, intern meddelandescroll, autoscroll och fokus tillbaka till input efter svar. Historiken bevaras när panelen döljs och när dokumentlänkar öppnas i samma flik.
+- Koduppdelningen omfattar chatPrompt, formatProducts, handleCartIntent, getSupportReply och den lokala barnkomponenten ChatSources. Ingen ny parallell kundvagn eller extra npm-paket har skapats.
+- Produktkategorier kan normaliseras med svenska alias. En begränsad kodregel säkerställer lagerkravet för frasen ”som finns i lager” utan orden ”inte”/”oavsett”; andra formuleringar och ärvda filter är fortfarande modellberoende.
+- Supportfrågor skrivs om av rewriteSupportQuestion med tidigare kundfrågor som sammanhang. Själva supportsvaret får nya dokumentutdrag och frågan utan gamla assistentsvar.
+- Blandfrågor skickar den utplockade supportdelen till getSupportReply. Produkttext och supporttext kombineras i getReply; ren support och följdfrågor behåller originalmeddelandet till omskrivningen.
+- Jag har efter sista komponentflytten kört frontendens lint och build med godkänt resultat. Tidigare Vite-varning om chunk över 500 kB är känd. Agenten har separat kontrollerat berörda komponenter med ESLint och laddat backendmoduler utan modell-/databasanrop.
+- README är skriven i jag-form med installation, arkitektur, tester, UI och kända begränsningar. Ursprunglig examinationsuppgift finns längst ner i denna statusfil.
+- AI-svar kan fortfarande förenkla villkor och källistan kan innehålla svagt relevanta utdrag. Jag har valt att behålla detta inom projektets nuvarande omfattning; det är inte en garanti för alla frågor.
+- Nästa steg är en avgränsad slutkontroll före inlämning. Ingen ny funktion eller större refaktorering är planerad.
 
 ## Beslut vi har tagit
 
@@ -78,13 +79,13 @@ Avbockningen ovan avser implementerat grundflöde och de manuella scenarier Sara
 
 ### VG – tillägg efter fungerande G-flöde
 
-Dessa punkter ingår som planeringsunderlag; G-flödet byggs först.
+Avbockningarna avser byggda delar och verifierade scenarier. De ersätter inte examinerande bedömning; begränsningar och slutkontroll finns i nuläget för 28 oktober.
 
 - [x] Lägg till produkter genom chatten, även genom följdfrågor (testade scenarier).
 - [x] Ta bort produkter genom chatten, även genom följdfrågor (testade scenarier; se begränsningar 27 oktober).
 - [x] Kundvagnsändringar syns i webbshoppens befintliga kundvagn.
 - [x] Dokumentbaserade svar länkar till rätt dokuments egen sida i PixelForge.
-- [ ] Modulär och skalbar kod följer startkodens arkitektur och ansvarsfördelning.
+- [x] Kodens ansvar är uppdelat enligt startkodens struktur, granskat efter refaktorering 28 oktober. Slutlig helhetsbedömning görs vid examination.
 
 ## Arbetsplan – underlag till GitHub Project
 
@@ -383,7 +384,7 @@ Gör ett litet kodsteg i taget och kontrollera filerna före instruktioner så a
 
 Kontrollerat 26 oktober: branch `15-koppla-kundvagn`, spårar `origin/15-koppla-kundvagn`, ren arbetsyta före denna dokumentationsuppdatering. Endast STATUS.md uppdateras av agenten. Ingen implementation, commit, push eller boardändring görs vid pausen. Sara återupptar arbetet 27 oktober.
 
-## Pauspunkt – tisdag 27 oktober 2026
+## Historisk pauspunkt – tisdag 27 oktober 2026
 
 Detta avsnitt och Nuläge ovan gäller framför äldre pausbeskrivningar. Sara vill fortsätta onsdag 28 oktober; funktionalitet och slutkontroller kommer före design.
 
@@ -433,18 +434,79 @@ Detta är verifierade scenarier, inte garanti för alla formuleringar. Ingen ny 
 - Frontend-ESLint passerade vid agentens kontroll idag. Node --check av slutlig getReply.js passerade. Ingen produktionsbuild, ny seed, automatisk testsvit eller full live-regression kördes av agenten.
 - Agenten gör endast denna dokumentationsändring vid pausen. Sara hanterar GitHub och Project-board själv. Git-status kontrolleras separat före ändringen.
 
+## Lägesnotering – onsdag 28 oktober 2026, inför slutkontroll
+
+Detta avsnitt och Nuläge gäller framför äldre pausbeskrivningar. Här skiljer jag på vad jag har testat manuellt, vad agenten kontrollerat och vad som fortfarande återstår.
+
+### Koduppdelning
+
+- Systemprompten är flyttad till src/ai/prompts/chatPrompt.js. getReply bygger fortfarande meddelandelistan.
+- formatProducts.js ansvarar för produkttext. Produkt och tom lista har direktprovats av agenten.
+- handleCartIntent.js hanterar clarify/add/remove och returnerar null när vanliga chatten ska fortsätta. Befintliga verktyg och Zustand-store återanvänds.
+- getSupportReply.js ansvarar för fristående supportfråga, dokumenthämtning, unika käll-id:n och supportsvaret.
+- Efter flytten upptäckte jag att en blandad fråga kunde skickas oförändrad till supportsökningen och ge saknat svar. getReply skickar nu supportIntent.query vid blandade frågor, originalmeddelandet vid rena supportfrågor. Blandfrågan gav därefter rätt tangentbord, 69 kr och gratis standardfrakt vid 1 500 kr eller mer.
+- ChatSources är en lokal barnkomponent under shared/chat/children/chatsources med ui/index.jsx och en exportfil. Chat äger fortfarande dokumenthämtningen, så befintlig cache och autoscroll behålls.
+- Den tidigare felstavade paketimporten i scripts/seed.js är rättad till @langchain/textsplitters. Ingen ny seed kördes och ingen fullständig nyinstallation har verifierats.
+- parseSupportIntent heter fortfarande så trots att den också tolkar produktbehov. Den allmänna verktygsloopen är kvar. Det finns kvarvarande överlapp i klassificering/omskrivning; en större arkitekturändring har medvetet skjutits upp.
+
+### Produkt- och supportkontroller
+
+- Produkt utan träffar: tangentbord under 100 kr → tydligt tomt resultat.
+- Produktföljdfråga: tangentbord under 1 500 kr i lager → möss under 800 kr. Slutliga loggar visade Keyboards/1500/true med pf-063 och Mice/800/true med pf-012.
+- Svenska ”möss” gav först tomt resultat. Sökfunktionen har nu en kontrollerad mappning för svenska kategoriord till API-kategorier.
+- Modellen tappade uttryckligt lagerkrav även efter promptändring. En kodregel infördes för just den tydliga frasen ovan; isolerat prov med simulerat modellresultat och mitt webbtest passerade.
+- Kundvagnsfråga felklassificerades först som produktsökning med null söktext. Efter promptavgränsning besvarades tom och fylld kundvagn korrekt utan åtgärd. Klassificeringen är fortfarande modellberoende.
+- Returfråga + ”Vem betalar frakten då?” tappade sammanhang. Separat rewriteSupportQuestion gav sedan fråga om returfrakt.
+- ”Gäller det även om varan är trasig?” gav efter ändringen en fristående fråga om returfrakt för trasig vara och ett svar om accepterad reklamation med returdokument.
+- Jag jämförde med Return Policy och noterade villkor om rimliga kostnader och stora/tunga produkter. Svaren kan utelämna sådana nyanser; jag har accepterat det som känd begränsning, inte som fullständigt precist stöd för alla villkor.
+- Saknat underlag: livstids fri frakt för studenter → ”Jag hittar ingen information om det i underlaget.” Inget påhittat erbjudande eller säkert nej.
+- Frakt: 69 kr under 1 500 kr och fri standardfrakt vid 1 500 kr eller mer återgavs korrekt i senare tester, även efter supportflytten. Historiskt fel ”över 1 500” finns dokumenterat; dagens rätta svar är inte en generell garanti.
+- Jag har verifierat klickbara dokumentlänkar till rätt supportsida i samma flik med chatthistoriken kvar.
+
+### VG-kundvagn – manuellt testat
+
+- DeathAdder V3 HyperSpeed lades till efter produktsökning. ”En till” gav två exemplar i synlig cart.
+- ”Ta bort en av mössen” och ”Ta bort den sista också” minskade 2 → 1 → 0.
+- Innehållsfråga gav aktuell cart utan att gamla historiska åtgärder kördes igen.
+- Två olika produkter + otydlig borttagning gav följdfråga och ingen godtycklig borttagning. Exakt namn slutförde rätt åtgärd.
+- Avbrytande lämnade produkterna kvar och nästa request hade pendingCartAction: null.
+- Routen för nu pendingCartAction vidare till getReply efter att en saknad vidarebefordran upptäckts.
+
+### UI och UX – implementerat och provat
+
+- Panel nere till höger med PixelForges befintliga färgvariabler, mörka ytor och lila accent.
+- Nestad CSS i komponentens ordning med BEM-klasser: header → meddelanden/källor → status/fel → formulär.
+- Öppningsknapp och stängkryss. Panelen döljs med hidden medan komponenten och useChat finns kvar.
+- Fast, fönsteranpassad panelhöjd. Bara meddelandedelen scrollar; header och formulär är synliga. Panelens z-index höjdes över webbplatsens header.
+- Användar- och assistentmeddelanden har olika placering/färg. Radbrytningar visas med pre-wrap.
+- Dokumentlänkar har avdelare, länkstil och focus-visible. Input/knappar har fokus- och disabled-stilar.
+- Autoscroll flyttar meddelandebehållaren vid nya meddelanden, dokumentladdning och öppning.
+- Input får fokus vid öppning och när pågående anrop är klart. Enter och Skicka fungerar.
+- Ingen animation lades till; jag behåller den enkla utformningen.
+- Escape och explicit fokus tillbaka till öppningsknappen är inte implementerade. Autoscroll tar inte hänsyn till om jag medvetet läser äldre meddelanden. Dessa är förbättringsmöjligheter, inte genomförda funktioner.
+- Ingen separat fullständig tillgänglighetsgranskning eller ny systematisk mobiltestomgång efter alla sista ändringar har dokumenterats.
+
+### Verifiering och dokumentation
+
+- Jag har rapporterat godkänd full frontend-lint och build efter den sista ChatSources-rättningen. Vites tidigare storleksvarning är känd.
+- Agentens riktade ESLint av Chat och ChatSources passerade efter rättning av ref-/variabelnamn.
+- Agenten körde syntaxkontroller under refaktoreringen och laddade getReply/getSupportReply med korrekta importer utan live-anrop. Ingen backendtestsvit finns; npm test är en placeholder.
+- Jag provade backend avstängd → fel i chatten → återstart → ny fråga fungerar utan omladdning.
+- README-filerna är uppdaterade i jag-form. Examinationskrav finns bevarade separat längst ner i STATUS.
+- Dagens senaste dokumentationspass ändrar bara README/STATUS, inga körbara filer. Ingen commit, push eller Project-board-ändring utförs av agenten.
+
+### Kvar inför inlämning
+
+- En sista kort kontroll av slutligt kodläge och demo efter samtliga refaktoreringar: produktföljdfråga, blandfråga, kundvagn och dokumentlänk. Tidigare godkända manuella prov ska inte beskrivas som en ny automatisk regression.
+- Kontrollera mobilvy, lågt fönster, tangentbordsnavigering och att chatten kan stängas med synligt kryss.
+- Kontrollera inlämningsrepo, aktuell branch/arbetsstatus och att lokala ändringar finns med i avsedd inlämningsbranch.
+- Kontrollera att inga .env-filer eller hemligheter är spårade. Inga hemliga värden ska återges i chatt eller dokumentation.
+- Jag sköter commit, push, GitHub-board och själva inlämningen om jag inte uttryckligen ber om annat.
+- Förbered en kort Code Review-demo av RAG, tools, historik, kundvagn och ansvarsfördelning. Deadline enligt uppgiften är 29 oktober 23:59; Code Review 30 oktober.
+
 ## Nästa steg
 
-**Börja 28 oktober med en mindre, beteendebevarande uppdelning av getReply.js och prompterna.** Läs aktuell kod först och flytta en tydlig ansvarsenhet i taget.
-
-Följ sedan Saras beslutade ordning:
-
-1. Uppsnyggning och finslipning av kod/svar, inklusive felaktiga gränsvärdesformuleringar och källrelevans.
-2. Samlad G- och VG-kontroll mot README: produkter, support, historik, blandfrågor, inga träffar/saknat underlag, add/remove/följdfrågor, precisering/avbrytande, synlig cart, riktiga dokumentlänkar och återhämtning efter fel. Kör aktuell frontend-lint/build och relevanta backendkontroller.
-3. Gå igenom installations-/start-/miljövariabeldokumentation och rätta README-länkar utan hemligheter.
-4. Enkel chatt-/formulärdesign som passar befintliga PixelForge, med vänteläge, felvisning och användbarhet. Ingen större redesign.
-
-Ingen finslipning eller design implementeras vid dagens paus.
+**Gör den avgränsade slutkontrollen före inlämning.** Börja med repo-/inlämningsläget och kontrollera därefter en kort demo på aktuellt kodläge. Läs kvarvarande begränsningar ovan och gör inga nya funktioner eller större omskrivningar under slutkontrollen om inget konkret fel motiverar det.
 
 
 ## Ursprunglig examinationsuppgift

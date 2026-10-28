@@ -13,7 +13,7 @@ Jag började med en enkel chatt i frontend och kopplade sedan på backend, produ
 - Be om ett förtydligande när det är oklart vilken produkt som ska tas bort.
 - Visa länkar till de hämtade supportdokumentens sidor i webbshoppen.
 
-Det går också att fråga om både produkter och support i samma meddelande.
+Det går också att fråga om både produkter och support i samma meddelande. Chatten öppnas med knappen ”Fråga PixelForge” nere till höger.
 
 ## Tekniker jag har använt
 
@@ -72,7 +72,7 @@ Produktverktyget hämtar riktiga produkter från kursens API. Filtreringen görs
 
 Jag läser in supportdokumenten från PDF-filer, delar upp texten i chunks och lagrar embeddings i Supabase. Vid en supportfråga skrivs frågan först om så att den går att förstå utan resten av samtalet. Sedan hämtas fyra dokumentutdrag genom vektorsökning.
 
-Supportsvaret får den fristående frågan och dokumentutdragen. Jag skickar inte med gamla assistentsvar i det steget, eftersom felaktiga tidigare svar annars kan följa med och upprepas.
+Jag har samlat supportflödet i getSupportReply. Vid blandade frågor plockar getReply först ut supportdelen, så tangentbords- eller musfrågan inte följer med i supportsökningen. Supportsvaret får den fristående frågan och dokumentutdragen. Jag skickar inte med gamla assistentsvar i det steget, eftersom felaktiga tidigare svar annars kan följa med och upprepas.
 
 Dokumentens id:n skickas tillbaka separat från svarstexten. Frontend kopplar dem till rätt titel och slug och visar länkar till dokumentens egna supportsidor.
 
@@ -81,6 +81,14 @@ Dokumentens id:n skickas tillbaka separat från svarstexten. Frontend kopplar de
 Jag har separerat tolkningen av kundens önskemål från själva kundvagnsåtgärden. Verktygen kontrollerar produktnamnet mot produkt-API:et eller aktuell kundvagn och förbereder en åtgärd med rätt produkt-id. När svaret kommer tillbaka utför frontend åtgärden i den befintliga storen.
 
 Vid en otydlig borttagning sparas en väntande åtgärd. Kunden kan då svara med produktnamnet eller avbryta utan att något tas bort.
+
+### Chattens gränssnitt
+
+Jag har gett chatten en egen panel nere till höger och använt webbshoppens befintliga mörka färger och lila accent. CSS:en är nestad uppifrån och ner efter komponentens struktur och följer BEM.
+
+Panelen kan öppnas och stängas utan att samtalet försvinner. Headern och formuläret ligger kvar medan meddelandena scrollas inuti panelen. Nya meddelanden scrollas fram automatiskt och skrivfältet får fokus igen när svaret är klart.
+
+Dokumentlänkarna visas av den lokala barnkomponenten ChatSources. Jag har behållit dokumenthämtningen i Chat, så samma TanStack Query-cache används även när länkarna visas och supportsidan öppnas. Jag har valt en enkel utformning utan animationer.
 
 ## Exempel att testa
 
@@ -96,7 +104,7 @@ Vid en otydlig borttagning sparas en väntande åtgärd. Kunden kan då svara me
 
 Jag har testat produktfrågor, supportfrågor, följdfrågor, blandade frågor, dokumentlänkar och kundvagnens tillägg, borttagning och avbrytande. Jag har även testat att stoppa backend och starta den igen. Chatten fungerar då igen utan att sidan behöver laddas om.
 
-Den 28 oktober gick frontendens lint och build igenom. Vite visar en varning om en chunk större än 500 kB, men bygget slutförs.
+Den 28 oktober gick frontendens lint och build igenom även efter den sista refaktoreringen av dokumentlänkarna. Jag har provat länkarna igen efter flytten. Under dagens byggen har Vite visat en varning om en chunk större än 500 kB, men bygget slutförs.
 
 Kör kontrollerna från frontend-mappen:
 
@@ -114,7 +122,6 @@ Det finns fortfarande begränsningar som jag vill vara tydlig med:
 - Lagerkontrollen tar inte hänsyn till hur många exemplar som redan ligger i kundvagnen. Jag har inte byggt generellt skydd mot upprepade åtgärder.
 - Vissa verktygsfel visas fortfarande som ett generellt chattfel.
 - Backendens `npm test` är kvar från startkoden och innehåller ingen fungerande testsvit.
-- Chattens design är fortfarande under arbete.
-- Innan en ny seed behöver paketimporten i seed-scriptet rättas enligt backendens README. Befintliga dokument ska inte läsas in igen bara för att starta appen.
+- Seed-importen är rättad, men jag har inte verifierat en helt ny installation efter ändringen. Seed lägger till rader, så befintliga dokument ska inte läsas in igen bara för att starta appen.
 
-Mer detaljerade testresultat och nästa steg finns i [STATUS.md](STATUS.md).
+Jag gör en sista kontroll av inlämningsläget, gränssnittet och en kort demo innan projektet lämnas in. Mer detaljerade testresultat och nästa steg finns i [STATUS.md](STATUS.md).
