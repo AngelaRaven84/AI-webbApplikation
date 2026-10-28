@@ -14,19 +14,40 @@ const supportModel = llm.withStructuredOutput(
 );
 
 export const parseSupportIntent = async ({ message, history = [] }) => {
-	return supportModel.invoke([
+	const intent = await supportModel.invoke([
 		new SystemMessage(`
             Avgör vilka uppgifter som behöver hämtas för senaste frågan. Besvara inte frågan.
             
             SUPPORT
             needsSupport: true för butikens frakt, leverans, returer, betalningsvillkor och garantier.
-            query: en fristående supportsökfråga, annars null.
+            query: en fristående supportsökfråga, annars null. Ersätt hänvisningar som "då", "den" och "det" med vad kunden syftar på enligt historiken. Sökfrågan måste kunna förstås utan tillgång till samtalet. Bevara kundens fråga och lägg inte till villkor som kunden inte har angett.
+
+            Exempel:
+            Tidigare fråga: "Hur gör jag för att returnera en vara?"
+            Senaste fråga: "Vem betalar frakten då?"
+            query: "Vem betalar returfrakten när kunden returnerar en vara?"
+
+            AKTUELL KUNDVAGN
+            Frågor om vad som redan ligger i kundvagnen kräver ingen sökning i sortimentet eller supportdokumenten. Den aktuella kundvagnen tillhandahålls separat i chattflödet.
+
+            Exempel:
+            "Vad ligger i min kundvagn?"
+            needsSupport: false, query: null,
+            needsProducts: false, productQuery: null,
+            maxPrice: null, inStockOnly: false
             
             PRODUKTER
             needsProducts: true för sortiment, produktrekommendationer, produktpriser och lagerstatus.
             productQuery: sökord för produktnamn, märke eller kategori, annars null.
             maxPrice: Kundens högsta pris i kronor, annars null.
-            inStockOnly: true om kunden uttryckligen efterfrågar produkter i lager, annars false.
+            inStockOnly: true om kunden efterfrågar produkter i lager. Vid följdfrågor behåll tidigare lagerkrav om kunden inte ändrar det. Senaste uttryckliga prisgräns och kategori ersätter tidigare värden.
+
+            Exempel:
+            Tidigare: "Hitta tangentbord under 1500 kronor som finns i lager."
+            Senaste: "Och möss under 800 kronor?"
+            needsProducts: true, productQuery: "Mice",
+            maxPrice: 800, inStockOnly: true
+
             Söktexten ska inte innehålla pris- eller lagerkrav; de anges i de separata fälten.
             Använd engelska kategorinamn: Headsets, Keyboards, Mice, Monitors.
             Använd historiken bara för att förstå hänvisningar.
@@ -50,4 +71,16 @@ export const parseSupportIntent = async ({ message, history = [] }) => {
 		),
 		new HumanMessage(message),
 	]);
+
+	const explicitStockRequirement =
+		/\bsom finns i lager\b/i.test(message) &&
+		!/\b(?:inte|oavsett)\b/i.test(message);
+
+	return {
+		...intent,
+		inStockOnly:
+			intent.needsProducts && explicitStockRequirement
+				? true
+				: intent.inStockOnly,
+	};
 };

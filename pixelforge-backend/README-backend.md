@@ -1,195 +1,179 @@
 # PixelForge – Backend
 
-Det här är backendprojektet för **PixelForge**, en fiktiv webbshop. Startkoden innehåller en Express-server, konfiguration för **Ollama** och **Supabase**, samt ett färdigt script som läser in supportdokument och sparar dem som embeddings i en vektordatabas.
+Här ligger backend till min PixelForge-assistent. Jag har byggt den med Node.js, Express och LangChain.js och använder Ollama för språkmodellen och Supabase för RAG. Frontend skickar frågor till POST /api/chat, där produktfrågor, supportfrågor och kundvagnsåtgärder hanteras.
 
-**Din uppgift är inte färdigimplementerad i startkoden.** Chat-endpointen och AI-logiken ska du själv bygga. Se projektets övergripande README för examinationskraven.
+## Installation och miljövariabler
 
-## 1. Kom igång
+Kör från pixelforge-backend:
 
-Du behöver:
-
-- Node.js och npm
-- [Ollama](https://ollama.com/) installerat och igång lokalt
-- Ett eget Supabase-projekt med stöd för vektorsökning
-
-Öppna terminalen i **backend-mappen** och installera beroendena:
-
-```bash
+```powershell
 npm install
 ```
 
-Starta utvecklingsservern:
-
-```bash
-npm run dev
-```
-
-Servern lyssnar som standard på `http://localhost:8080`. Den befintliga routen är `POST /api/chat`, men den innehåller ännu ingen implementerad logik och ger därför inte ett fungerande chatsvar.
-
-Övriga kommandon:
-
-```bash
-npm start       # Starta servern utan nodemon
-npm run seed    # Läs in PDF-dokument och spara embeddings i Supabase
-```
-
-> Kör kommandona från backend-mappen, där `package.json` finns. Frontend startas separat enligt `frontend/README.md`.
-
-## 2. Miljövariabler (.env)
-
-Skapa en fil som heter `.env` i backend-mappen. Lägg in följande variabler och ersätt exempelvärdena med dina egna:
+Skapa en lokal .env i samma mapp:
 
 ```dotenv
 SUPABASE_URL=https://ditt-projekt.supabase.co
-SUPABASE_KEY=din-supabase-nyckel
-OLLAMA_LLM=namnet-pa-din-chattmodell
-OLLAMA_EMBEDDING_MODEL=namnet-pa-din-embeddingmodell
-PORT=din-valda-port
+SUPABASE_KEY=din-backendnyckel
+OLLAMA_LLM=qwen3:4b-instruct
+OLLAMA_EMBEDDING_MODEL=qwen3-embedding:0.6b
+PORT=8080
 ```
 
-| Variabel | Vad den används till |
-| --- | --- |
-| `SUPABASE_URL` | Projektets URL i Supabase. |
-| `SUPABASE_KEY` | Nyckeln som backend använder för att ansluta till Supabase. |
-| `OLLAMA_LLM` | Namnet på den lokala språkmodell som ska generera chattsvar. |
-| `OLLAMA_EMBEDDING_MODEL` | Namnet på modellen som skapar embeddings för dokument och sökfrågor. |
-| `PORT` | Den port på localhost som kommer serva din backend. |
+Det här är exempelvärden. Lägg in din egen Supabase-URL och nyckel lokalt. Jag håller nyckeln i backendens .env, som är ignorerad i .gitignore tillsammans med node_modules. Nyckeln behöver kunna söka dokument och även skriva dem när seed körs.
 
-Du hittar URL och API-nycklar i ditt Supabase-projekts inställningar. Använd en nyckel som har den åtkomst din lösning behöver, och **förvara den endast i backendens `.env`**. En hemlig/service-role-nyckel får aldrig användas i frontend eller publiceras på GitHub.
+Ladda ner projektets modeller:
 
-`.env` är ignorerad via `.gitignore`.
-
-**Viktigt:** De två Ollama-variablerna ska innehålla modellnamn som faktiskt finns nedladdade på din dator. De behöver inte vara samma modell. Embeddingmodellen som används vid sökning måste vara densamma som användes när dokumenten laddades upp.
-
-### Installera Ollama-modeller
-
-Välj de modeller ni använder under kursen och ladda ned dem, exempelvis:
-
-```bash
-ollama pull qwen3:4b
-ollama pull nomic-embed-text
-```
-
-Då kan motsvarande `.env`-värden vara:
-
-```dotenv
-OLLAMA_LLM=qwen3:4b
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-```
-
-Kontrollera dina installerade modeller med:
-
-```bash
+```powershell
+ollama pull qwen3:4b-instruct
+ollama pull qwen3-embedding:0.6b
 ollama list
 ```
 
-Ollama behöver vara igång när du kör seed-scriptet och när backend ska använda modellerna. Den befintliga konfigurationen använder Ollamas standardadress `http://localhost:11434`.
+Jag använder Ollamas lokala adress http://localhost:11434 och temperature 0.2 för chattmodellen. Starta med ollama serve om Ollama inte redan körs. Embeddingmodellen ger 1024 dimensioner och behöver vara samma när dokumenten läses in och när frågor söks.
 
-## 3. Projektstruktur
+## Supabase – första installationen
 
-```text
-backend/
-├── documents/                  # 20 supportdokument i PDF-format
-├── scripts/
-│   └── seed.js                 # Läser in dokument och skapar embeddings
-├── src/
-│   ├── ai/                     # Här kan du organisera din AI-logik
-│   ├── config/
-│   │   ├── ollama.config.js    # Språkmodell och embeddingmodell
-│   │   └── supabase.config.js  # Supabase-klient
-│   ├── routes/
-│   │   └── chat.route.js       # POST /api/chat – ska implementeras
-│   └── utils/
-│       └── combineDocuments.js # Hjälpfunktion för dokumenttext
-├── .env                        # Dina egna inställningar (ska inte committas)
-├── package.json
-└── server.js                   # Express-servern
+Jag lagrar dokumentutdragen i public.documents och söker med funktionen public.match_documents. Varje rad har ett id, texten i content, metadata och en embedding med 1024 dimensioner.
+
+SQL-exemplet nedan är till för en tom databas, med pgvector i schemat extensions. Jag har inte testat om en helt ny installation med just det här exemplet. Om en databas redan finns behöver tabell, dimensioner och rättigheter kontrolleras innan något ändras.
+
+```sql
+create extension if not exists vector with schema extensions;
+
+create table public.documents (
+  id bigint generated by default as identity primary key,
+  content text,
+  metadata jsonb,
+  embedding extensions.vector(1024)
+);
+
+alter table public.documents enable row level security;
+
+create or replace function public.match_documents(
+  query_embedding extensions.vector(1024),
+  match_count integer default 4,
+  filter jsonb default '{}'::jsonb
+)
+returns table (
+  id bigint,
+  content text,
+  metadata jsonb,
+  similarity double precision
+)
+language sql
+stable
+security invoker
+set search_path = public, extensions
+as $$
+  select
+    d.id,
+    d.content,
+    d.metadata,
+    1 - (d.embedding <=> query_embedding) as similarity
+  from public.documents d
+  where d.metadata @> filter
+  order by d.embedding <=> query_embedding
+  limit match_count;
+$$;
+
+notify pgrst, 'reload schema';
 ```
 
-**`src/ai/`** är avsiktligt tom. Du kan själv välja hur du organiserar prompts, retriever, tools, chains och övrig AI-logik. Det finns ingen bestämd filstruktur som du måste följa där.
+RLS och åtkomsträttigheter måste passa backendens nyckel. Exemplet lägger inte till öppna klientpolicies. Ett backendkonto med service-role-behörighet kringgår RLS och får aldrig exponeras i frontend.
 
-**`src/routes/chat.route.js`** innehåller en förberedd `POST /`-route som monteras under `/api/chat` i `server.js`. Du implementerar själv hur ett meddelande tas emot, behandlas och skickas tillbaka till frontend. Bestäm ett tydligt request- och response-format som frontend och backend använder gemensamt.
+RPC-argumenten måste heta query_embedding, match_count och filter. PGRST202 innebär att funktionen/signaturen eller API:ets schema-cache behöver kontrolleras.
 
-## 4. Förbered Supabase
+## Indexera dokument en gång
 
-Du behöver en vektordatabas för supportdokumenten.
+Jag läser PDF-filerna från documents/ sida för sida. Varje del får filnamnet som source och ett documentId, till exempel doc-001. Texten delas sedan med chunkSize 1000 och chunkOverlap 200 innan embeddings sparas i Supabase.
 
-1. Skapa ett eget projekt i Supabase.
-2. Skapa en tabell som heter **`documents`** för dokumenttext, metadata och embeddings.
-3. Skapa en sökfunktion som heter **`match_documents`**, så att LangChains `SupabaseVectorStore` kan göra likhetssökningar.
-4. Se till att embeddingkolumnens dimension matchar **den embeddingmodell du valt**. Dimensionen skiljer sig mellan modeller.
-5. Kontrollera att nyckeln i `.env` har nödvändiga rättigheter för att skriva och söka i tabellen.
+**Känt fel i aktuell seed-fil:** scripts/seed.js importerar @langchain/textSplitters. Installerat paket heter @langchain/textsplitters. Före en ny seed behöver importen vara:
 
-Använd gärna SQL-instruktionerna från kursens tidigare RAG-övning. Tabellens och funktionens namn behöver överensstämma med startkoden. Kontrollera också att SQL-funktionens parametrar och returkolumner passar LangChains `SupabaseVectorStore`.
+```js
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+```
 
-> Använder du en annan embeddingmodell än i tidigare övningar kan du behöva ändra dimensionen i SQL-koden. Blanda inte embeddings från olika modeller i samma vektorsökning.
+När importen är rättad och Ollama, databas och miljövariabler är klara:
 
-## 5. Ladda upp dokumenten med seed
-
-I `documents/` ligger **20 PDF-filer** med information om bland annat leveranser, returer, reklamationer, garantier, betalningar och teknisk support.
-
-Seed-scriptet i `scripts/seed.js` gör följande:
-
-1. Läser alla PDF-filer i `documents/` med `PDFLoader`.
-2. Lägger till PDF-filens namn i dokumentens metadata (`source`).
-3. Delar upp texten i mindre delar med `RecursiveCharacterTextSplitter` (`chunkSize: 1000`, `chunkOverlap: 200`).
-4. Skapar embeddings med modellen i `OLLAMA_EMBEDDING_MODEL`.
-5. Sparar text, metadata och embeddings i Supabase-tabellen `documents`.
-
-När Supabase och Ollama är redo kör du:
-
-```bash
+```powershell
 npm run seed
 ```
 
-Öppna sedan **Supabase → Table Editor → documents** och kontrollera att tabellen innehåller rader.
+När jag provade inläsningen fick jag 54 dokumentdelar och 161 chunks från de 20 PDF-filerna. Dokumenten finns i min Supabase-databas och sökningen fungerar där. Jag har däremot inte gjort om hela installationen från början efter de senaste ändringarna.
 
-**Obs!** Seed-scriptet rensar inte tidigare data. Kör du det flera gånger kan samma dokument läggas in flera gånger. Töm relevanta rader innan du seedar på nytt om du vill undvika dubbletter.
+Seed lägger till dokument utan att rensa gamla rader. Jag kör därför inte seed vid vanlig appstart, eftersom det kan skapa dubbletter. Om embeddingmodellen byts behöver dokumenten läsas in på nytt med rätt modell och dimension.
 
+## Starta backend
 
-## 6. Använd den förberedda konfigurationen
-
-I `src/config/ollama.config.js` exporteras:
-
-- `llm` – en `ChatOllama`-instans som använder `OLLAMA_LLM`.
-- `embeddingModel` – en `OllamaEmbeddings`-instans som använder `OLLAMA_EMBEDDING_MODEL`.
-
-I `src/config/supabase.config.js` exporteras:
-
-- `supabase` – en färdig Supabase-klient.
-
-Du kan importera dessa i din egen AI-logik i stället för att skapa nya instanser överallt.
-
-`src/utils/combineDocuments.js` är tänkt att slå samman text från hämtade LangChain-dokument. Observera att LangChains dokumenttext ligger i **`pageContent`**. Om startfilen använder `document.content` behöver det ändras till `document.pageContent`.
-
-## 7. Anslut frontend till backend
-
-Frontend och backend körs som två separata utvecklingsservrar. Backendens route börjar på:
-
-```text
-http://localhost:8080/api/chat
+```powershell
+npm run dev
 ```
 
-Frontend behöver skicka användarens meddelanden till den endpoint du implementerar och visa svaret i chatten. Om du väljer ett annat portnummer eller request-format behöver du anpassa frontend därefter.
+Alternativt npm start utan nodemon. Standardport är 8080; server.js läser PORT. Frontend startas separat enligt [frontendguiden](../pixelforge-frontend/README.md) och anropar för närvarande http://localhost:8080/api/chat.
 
-CORS och JSON-parsning är redan aktiverade i Express. Om du vill ändra serverns port: startkoden använder för närvarande `process.env.POSRT`; rätta detta till `process.env.PORT` och lägg vid behov till `PORT=8080` i `.env`.
+## Request och response
 
-## 8. Vanliga problem
+POST /api/chat tar emot:
 
-| Problem | Kontrollera |
+```json
+{
+  "message": "Vad ligger i min kundvagn?",
+  "history": [],
+  "cart": [],
+  "pendingCartAction": null
+}
+```
+
+history innehåller objekt med role (user/assistant) och content. cart innehåller productId, name och qty (positivt heltal). pendingCartAction är null eller remove.
+
+Svaret har content, sources (dokument-id:n) och cartActions. Vid väntande borttagningsprecisering finns även pendingCartAction: remove. Frontend tolkar ett saknat fält som null.
+
+cartActions kan innehålla add_to_cart med ett kontrollerat produktobjekt eller remove_from_cart med productId och namn. Jag låter backend förbereda åtgärden och frontend utföra den i webbshoppens befintliga Zustand-store. Kundvagnen lagras alltså inte på servern.
+
+Ogiltig request ger HTTP 400. Kör-/verktygsfel loggas i backend och returnerar ett generellt HTTP 500-svar. Frontend kan skicka en ny fråga när anropet är klart.
+
+## Så har jag delat upp koden
+
+| Fil eller mapp | Ansvar |
 | --- | --- |
-| Backend startar inte | Att du står i backend-mappen och har kört `npm install`. |
-| Ollama-anrop misslyckas | Att Ollama körs och att modellnamnen i `.env` finns i `ollama list`. |
-| Supabase-anslutning misslyckas | `SUPABASE_URL`, `SUPABASE_KEY` och databasbehörigheter. |
-| Fel dimension på embeddings | Att vektorkolumnens dimension matchar vald embeddingmodell. |
-| `match_documents` saknas | Att SQL-funktionen har skapats med rätt namn och signatur. |
-| Dokument finns flera gånger | Att seed-scriptet inte körts upprepade gånger utan rensning. |
-| Chatten ger inget svar | Att `POST /api/chat` ännu är en tom route tills du implementerat den. |
+| server.js | Express, CORS, JSON och port. |
+| src/routes/chat.route.js | Validering och HTTP-kontrakt. |
+| src/ai/getReply.js | Samordnar chattens flöden. |
+| src/ai/parseCartIntent.js | Tolkar aktuell kundvagnsbegäran och väntande precisering. |
+| src/ai/handleCartIntent.js | Kör kundvagnsverktyg och bygger åtgärdssvar. |
+| src/ai/parseSupportIntent.js | Tolkar behov av support/produkter samt produktfilter. |
+| src/ai/rewriteSupportQuestion.js | Fristående supportfråga från senaste och tidigare kundfrågor. |
+| src/ai/searchSupport.js | Vektorsökning i Supabase, fyra utdrag. |
+| src/ai/formatProducts.js | Formaterar kontrollerade produktresultat. |
+| src/ai/prompts/chatPrompt.js | Gemensam systemprompt. |
+| src/tools/products/ | Produkt-API, filtrering, svenska kategori-alias och tool. |
+| src/tools/support/ | Dokumentutdrag med källmetadata som tool-resultat. |
+| src/tools/cart/ | Produktkontroll och förberedda add/remove-åtgärder. |
+| src/config/ | Gemensamma Ollama- och Supabase-klienter. |
+| scripts/seed.js | Separat inläsning och indexering av PDF-filer. |
 
-## 9. Vad är färdigt och vad ska du bygga?
+Jag håller gamla assistentsvar utanför supportsvaret och skickar i stället med frågan och de nya dokumentutdragen. Dokument-id:n följer med tillbaka till frontend, som bygger länkarna från sitt befintliga dokument-API. För övriga chattfall finns den allmänna verktygsloopen kvar.
 
-**Färdigt i startprojektet:** Express-server, grundläggande middleware, förberedd chat-route, konfiguration för Ollama/Supabase, PDF-dokument och seed-script.
+## Kontroller och felsökning
 
-**Du bygger själv:** chatlogik, prompts, konversationshistorik, RAG-hämtning, tools och kopplingen mellan backendens svar och frontendens chatbot. Se den övergripande README-filen för vad som krävs för G och VG.
+Jag har främst testat flödena manuellt genom webbchatten. npm test är fortfarande ett placeholder-script från startkoden och innehåller inga riktiga tester. En snabb syntaxkontroll kan köras så här:
 
-Målet är att du ska kunna fokusera på AI-funktionaliteten utan att behöva bygga all grundläggande infrastruktur från början.
+```powershell
+node --check src/ai/getReply.js
+```
+
+Se [projektets README](../README.md) för manuella scenarier och kända begränsningar. Se [STATUS.md](../STATUS.md) för daterade testresultat.
+
+| Fel | Kontroll |
+| --- | --- |
+| Ollama-anrop misslyckas | Tjänsten körs, modellnamn finns i ollama list. |
+| Supabase-fel | Lokala miljövariabler och nyckelns rättigheter. |
+| PGRST202 | public.match_documents och dess tre argument samt schema-cache. |
+| Embeddingdimension stämmer inte | Samma embeddingmodell för seed och frågor, vector(1024). |
+| Seed hittar inte paketet | Rätta textSplitters till textsplitters enligt ovan. |
+| Generellt chattfel | Läs det konkreta Chatfel i backendterminalen. |
+| Fel kategorisökning eller lagerfilter | Kontrollera Supporttolkning och Produktsökning i terminalen. |
+| Följdfråga söker fel ämne | Kontrollera Fristående supportfråga och mottagen history. |
+
+Jag skickar inte hemliga miljövärden till modellen och skriver inte ut dem i publika loggar.
