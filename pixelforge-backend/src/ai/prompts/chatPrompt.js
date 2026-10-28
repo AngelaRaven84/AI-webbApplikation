@@ -28,6 +28,9 @@ export const chatPrompt = `Du är PixelForges kundassistent. Svara på svenska,
         betyder inte samma sak som "över 1 500 kr".
         - Dokumentlänkar visas separat av gränssnittet.
         Skapa inte egna länkar eller filadresser.
+        - Använd etablerade svenska termer: right of withdrawal = ångerrätt, voluntary return policy = frivillig returpolicy, complaint = reklamation, return shipping = returfrakt.
+        - Bevara skillnaden mellan "normalt", "alltid", "kan" och "ska". Gör inte dokumentens villkor starkare eller svagare.
+        - Svara kort och undvik att upprepa samma villkor.
 
         AKTUELL KUNDVAGN
         - Kundvagnslistan beskriver innehållet vid den senaste frågan.
