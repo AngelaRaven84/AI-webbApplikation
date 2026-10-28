@@ -30,20 +30,22 @@ export const Chat = () => {
 	return (
 		<section className='chat' aria-labelledby='chat-title'>
 			<header className='chat__header'>
-				<h2 className='chat__title' id='chat__title'>
+				<h2 className='chat__title' id='chat-title'>
 					PixelForge-assistent
 				</h2>
 				<p className='chat__intro'>Hej! Vad kan jag hjälpa dig med?</p>
 			</header>
 
-			<div aria-live='polite'>
+			<div className='chat__messages' aria-live='polite'>
 				{messages.map((message) => (
-					<div key={message.id}>
-						<p>{message.content}</p>
+					<div
+						key={message.id}
+						className={`chat__message chat__message--${message.role}`}>
+						<p className='chat__message-text'>{message.content}</p>
 
 						{message.sources?.length > 0 && (
-							<div>
-								<p>Hämtade underlag:</p>
+							<div className='chat__sources'>
+								<p className='chat__sources-title'>Hämtade underlag:</p>
 
 								{documentsPending && (
 									<p role='status'>Laddar dokumentlänkar...</p>
@@ -53,12 +55,13 @@ export const Chat = () => {
 									<p role='alert'> Det gick inte att hämta dokumentlänkarna.</p>
 								)}
 
-								<ul>
+								<ul className='chat__sources-list'>
 									{documents
 										.filter((document) => message.sources.includes(document.id))
 										.map((document) => (
-											<li key={document.id}>
+											<li className='chat__sources-item' key={document.id}>
 												<Link
+													className='chat__source-link'
 													to={`/support/${encodeURIComponent(document.slug)}`}>
 													{document.title}
 												</Link>
@@ -71,22 +74,35 @@ export const Chat = () => {
 				))}
 			</div>
 
-			{isPending && <p role='status'>Assistenten tänker...</p>}
+			{isPending && (
+				<p className='chat__status' role='status'>
+					Assistenten tänker...
+				</p>
+			)}
 
-			{error && <p role='alert'>{error.message}</p>}
+			{error && (
+				<p className='chat__error' role='alert'>
+					{error.message}
+				</p>
+			)}
 
-			<form onSubmit={handleSubmit}>
-				<label htmlFor='chat-message'>Din fråga</label>
-				<input
-					id='chat-message'
-					name='message'
-					type='text'
-					placeholder='Vad letar du efter?'
-					disabled={isPending}
-				/>
-				<button type='submit' disabled={isPending}>
-					{isPending ? 'Väntar...' : 'Skicka'}
-				</button>
+			<form className='chat__form' onSubmit={handleSubmit}>
+				<label className='chat__label' htmlFor='chat-message'>
+					Din fråga
+				</label>
+				<div className='chat__controls'>
+					<input
+						className='chat__input'
+						id='chat-message'
+						name='message'
+						type='text'
+						placeholder='Vad letar du efter?'
+						disabled={isPending}
+					/>
+					<button className='chat__submit' type='submit' disabled={isPending}>
+						{isPending ? 'Väntar...' : 'Skicka'}
+					</button>
+				</div>
 			</form>
 		</section>
 	);
