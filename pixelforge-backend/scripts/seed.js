@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import { RecursiveCharacterTextSplitter } from '@langchain/textSplitters';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { SupabaseVectorStore } from '@langchain/community/vectorstores/supabase';
 import { embeddingModel } from '../src/config/ollama.config.js';
 import { supabase } from '../src/config/supabase.config.js';
